@@ -234,6 +234,10 @@ Continuar con Google
 <label>Lugar (opcional)</label>
 <input class="sheet-input" id="sheetLocation" placeholder="ej. Cinemex Antara, Torre Médica...">
 </div>
+<div class="sheet-field" id="sheetGuestWrap" style="display:none">
+<label>Invitado (opcional)</label>
+<input class="sheet-input" id="sheetGuest" placeholder="Nombre de quien invitas...">
+</div>
 <div class="sheet-actions">
 <button class="btn-cancel" onclick="closeSheet()">Cancelar</button>
 <button class="btn-save" id="saveBtn" onclick="saveItem()">Guardar</button>
@@ -265,6 +269,10 @@ Continuar con Google
 <div class="sheet-field" id="editLocationWrap" style="display:none">
 <label>Lugar (opcional)</label>
 <input class="sheet-input" id="editLocation" placeholder="ej. Cinemex Antara, Torre Médica...">
+</div>
+<div class="sheet-field" id="editGuestWrap" style="display:none">
+<label>Invitado (opcional)</label>
+<input class="sheet-input" id="editGuest" placeholder="Nombre de quien invitas...">
 </div>
 <div class="sheet-actions">
 <button class="btn-cancel" onclick="closeEdit()">Cancelar</button>
@@ -437,7 +445,7 @@ function renderList(c){
   const arr=items[c]||[];
   const pending=arr.filter(i=>!i.done);
   const done=arr.filter(i=>i.done);
-  const showPlan=c==='peliculas'||c==='libros'||c==='ejercicio';
+  const showPlan=c==='peliculas'||c==='libros';
   let h=`<div>`;
   if(!arr.length)h+=`<div class="empty"><div style="font-size:28px">✦</div><p>Nada aquí todavía.<br>Toca + para agregar.</p></div>`;
   else{
@@ -447,10 +455,32 @@ function renderList(c){
   return h+`</div>`;
 }
 
+function parseLocation(raw){
+  if(!raw)return{loc:null,guest:null};
+  const parts=raw.split('||');
+  return{loc:parts[0]||null,guest:parts[1]||null};
+}
+
 function renderItem(item,c,showPlan){
+  // Ejercicio con invitado → card estilo WhatsApp
+  if(c==='ejercicio'&&item.location&&item.location.includes('||')){
+    const{loc,guest}=parseLocation(item.location);
+    const ds=item.date?fmtDate(item.date):'';
+    const meta=[guest?`Con: ${guest}`:'',ds,loc].filter(Boolean).join(' · ');
+    const msg=`Oye ${guest}! Te propongo hacer ejercicio juntos: ${item.text}${loc?' en '+loc:''} 💪 ¿te apuntas?`;
+    return `<div class="wa-card">
+      <div class="wa-head"><div class="wa-icon">🏃</div><div><div class="wa-name">${item.text}</div><div class="wa-sub">${meta}</div></div></div>
+      <div class="wa-bubble">${msg}</div>
+      <div class="wa-actions">
+        <button class="wa-btn" onclick="openEdit(event,'${item.id}','${c}')">Editar</button>
+        <button class="wa-btn send" onclick="sendWA('${encodeURIComponent(msg)}')">Enviar por WhatsApp 💚</button>
+      </div>
+    </div>`;
+  }
   const ds=item.date?`<div class="lmeta">${fmtDate(item.date)}</div>`:'';
-  const ls=item.location?`<div class="lmeta">📍 ${item.location}</div>`:'';
-  const ml=item.location?`<a href="https://maps.google.com/?q=${encodeURIComponent(item.location)}" target="_blank" style="font-size:10px;color:var(--pink);text-decoration:none;margin-right:4px" onclick="event.stopPropagation()">maps</a>`:'';
+  const{loc}=parseLocation(item.location);
+  const ls=loc?`<div class="lmeta">📍 ${loc}</div>`:'';
+  const ml=loc?`<a href="https://maps.google.com/?q=${encodeURIComponent(loc)}" target="_blank" style="font-size:10px;color:var(--pink);text-decoration:none;margin-right:4px" onclick="event.stopPropagation()">maps</a>`:'';
   const pb=showPlan&&!item.done?`<button class="plan-btn" onclick="makePlan(event,'${item.id}','${c}')">hacer plan</button>`:'';
   return `<div class="list-item"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}${ls}</div>${ml}${pb}<button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button><button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>`;
 }
@@ -470,6 +500,7 @@ function openEdit(e,id,c){
   const needLoc=NEED_LOC.includes(c);
   document.getElementById('editDateWrap').style.display=needDate?'block':'none';
   document.getElementById('editLocationWrap').style.display=needLoc?'block':'none';
+  document.getElementById('editGuestWrap').style.display=c==='ejercicio'?'block':'none';
   if(needDate){
     const isCumple=c==='cumples';
     document.getElementById('editDate').style.display=isCumple?'none':'block';
@@ -480,7 +511,11 @@ function openEdit(e,id,c){
       else document.getElementById('editDate').value=item.date.length<=10?item.date+'T00:00':item.date.slice(0,16);
     }
   }
-  if(needLoc)document.getElementById('editLocation').value=item.location||'';
+  if(needLoc){
+    const{loc,guest}=parseLocation(item.location);
+    document.getElementById('editLocation').value=loc||'';
+    if(c==='ejercicio')document.getElementById('editGuest').value=guest||'';
+  }
   document.getElementById('editOverlay').classList.add('open');
   setTimeout(()=>document.getElementById('editInput').focus(),350);
 }
@@ -499,7 +534,11 @@ async function saveEdit(){
   const isCumple=c==='cumples';
   const dateEl=(!isCumple&&document.getElementById('editDate').style.display!='none')?document.getElementById('editDate'):document.getElementById('editDateSimple');
   const date=NEED_DATE.includes(c)?(dateEl.value||null):null;
-  const location=NEED_LOC.includes(c)?(document.getElementById('editLocation').value.trim()||null):null;
+  let location=NEED_LOC.includes(c)?(document.getElementById('editLocation').value.trim()||null):null;
+  if(c==='ejercicio'){
+    const guest=document.getElementById('editGuest').value.trim();
+    if(guest) location=(location?location:'')+'||'+guest;
+  }
   const btn=document.getElementById('editBtn');
   btn.textContent='Guardando...';btn.disabled=true;
   await sb.from('items').update({text,date,location}).eq('id',editingId).eq('user_id',user.id);
@@ -537,7 +576,7 @@ function openSheet(c){
 
 function closeSheet(){
   document.getElementById('overlay').classList.remove('open');
-  ['sheetInput','sheetDate','sheetLocation'].forEach(id=>document.getElementById(id).value='');
+  ['sheetInput','sheetDate','sheetLocation','sheetGuest'].forEach(id=>document.getElementById(id).value='');
 }
 
 function handleOverlayClick(e){if(e.target===document.getElementById('overlay'))closeSheet();}
@@ -548,6 +587,7 @@ function selectCat(btn,c){
   const needDate=NEED_DATE.includes(c);
   document.getElementById('sheetDateWrap').style.display=needDate?'block':'none';
   document.getElementById('sheetLocationWrap').style.display=NEED_LOC.includes(c)?'block':'none';
+  document.getElementById('sheetGuestWrap').style.display=c==='ejercicio'?'block':'none';
   document.getElementById('sheetInput').placeholder=HINTS[c]||'Escribe aquí...';
   if(needDate){
     const isCumple=c==='cumples';
@@ -564,7 +604,11 @@ async function saveItem(){
   if(!text){document.getElementById('sheetInput').focus();return;}
   const dateEl=document.getElementById('sheetDate').style.display!='none'?document.getElementById('sheetDate'):document.getElementById('sheetDateSimple');
   const date=dateEl.value||null;
-  const location=document.getElementById('sheetLocation').value.trim()||null;
+  let location=document.getElementById('sheetLocation').value.trim()||null;
+  if(cat==='ejercicio'){
+    const guest=document.getElementById('sheetGuest').value.trim();
+    if(guest) location=(location?location:'')+'||'+guest;
+  }
   const btn=document.getElementById('saveBtn');
   btn.textContent='Guardando...';btn.disabled=true;
   await addItem(cat,text,date,location);
