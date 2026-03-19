@@ -259,9 +259,17 @@ const NEED_DATE=['eventos','citas','salud','cumples'];
 const NEED_LOC=['eventos','citas'];
 
 async function init(){
+  // Handle magic link token in URL hash
+  if(window.location.hash&&window.location.hash.includes('access_token')){
+    const{data,error}=await sb.auth.getSession();
+    if(data?.session){user=data.session.user;history.replaceState(null,'',window.location.pathname);await showApp();return;}
+  }
   const{data:{session}}=await sb.auth.getSession();
   if(session){user=session.user;await showApp();}else showAuth();
-  sb.auth.onAuthStateChange(async(_,s)=>{if(s){user=s.user;await showApp();}else{user=null;showAuth();}});
+  sb.auth.onAuthStateChange(async(_,s)=>{
+    if(s?.user){user=s.user;history.replaceState(null,'',window.location.pathname);await showApp();}
+    else{user=null;showAuth();}
+  });
 }
 
 function showAuth(){
