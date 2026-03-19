@@ -411,7 +411,7 @@ function renderList(c){
   const arr=items[c]||[];
   const pending=arr.filter(i=>!i.done);
   const done=arr.filter(i=>i.done);
-  const showPlan=c==='peliculas'||c==='libros';
+  const showPlan=c==='peliculas'||c==='libros'||c==='ejercicio';
   let h=`<div>`;
   if(!arr.length)h+=`<div class="empty"><div style="font-size:28px">✦</div><p>Nada aquí todavía.<br>Toca + para agregar.</p></div>`;
   else{
@@ -437,7 +437,8 @@ function makePlan(e,id,c){
   e.stopPropagation();
   const item=(items[c]||[]).find(i=>i.id===id);
   if(!item)return;
-  const msg=encodeURIComponent('Oye! Te propongo un plan: '+item.text+' — ¿te apuntas? 🎉');
+  const msgTexto=c==='ejercicio'?'Oye! Te propongo hacer ejercicio juntos: '+item.text+' — ¿te apuntas? 💪':'Oye! Te propongo un plan: '+item.text+' — ¿te apuntas? 🎉';
+  const msg=encodeURIComponent(msgTexto);
   const choice=confirm('¿Qué quieres hacer con "'+item.text+'"?\n\nOK = Compartir por WhatsApp\nCancelar = Crear evento');
   if(choice){
     window.open('https://wa.me/?text='+msg,'_blank');
