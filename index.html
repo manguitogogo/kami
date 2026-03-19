@@ -106,6 +106,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .lmeta{font-size:11px;color:var(--text3);margin-top:2px}
 .del-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:4px;line-height:1}
 .del-btn:hover{color:var(--pink)}
+.edit-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:4px;line-height:1;opacity:0.6}
+.edit-btn:hover{opacity:1}
 .plan-btn{font-size:10px;padding:3px 8px;border-radius:20px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text3);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;flex-shrink:0}
 .plan-btn:hover{background:var(--pink-light);color:var(--pink)}
 .empty{text-align:center;padding:40px 20px;color:var(--text3)}
@@ -247,6 +249,30 @@ Continuar con Google
 </div>
 </div>
 
+<div class="overlay" id="editOverlay" onclick="handleEditOverlayClick(event)">
+<div class="sheet">
+<div class="sheet-handle"></div>
+<div class="sheet-title">Editar</div>
+<div class="sheet-field">
+<label>Texto</label>
+<input class="sheet-input" id="editInput" placeholder="Escribe aquí..." type="text">
+</div>
+<div class="sheet-field" id="editDateWrap" style="display:none">
+<label id="editDateLabel">Fecha y hora</label>
+<input class="sheet-input" type="datetime-local" id="editDate">
+<input class="sheet-input" type="date" id="editDateSimple" style="display:none">
+</div>
+<div class="sheet-field" id="editLocationWrap" style="display:none">
+<label>Lugar (opcional)</label>
+<input class="sheet-input" id="editLocation" placeholder="ej. Cinemex Antara, Torre Médica...">
+</div>
+<div class="sheet-actions">
+<button class="btn-cancel" onclick="closeEdit()">Cancelar</button>
+<button class="btn-save" id="editBtn" onclick="saveEdit()">Guardar</button>
+</div>
+</div>
+</div>
+
 <script>
 const SURL='https://ufdzyseexhajmzghhsem.supabase.co';
 const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmZHp5c2VleGhham16Z2hoc2VtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Mjk4ODIsImV4cCI6MjA4OTUwNTg4Mn0.56BkKgvZYBwSEAQg4m8X9xReJCekN2AUULdGmFi37Qg';
@@ -256,8 +282,8 @@ const COLORS={compras:'#1d9e75',eventos:'#ba7517',peliculas:'#7f77dd',libros:'#3
 const BADGES={compras:'bt',eventos:'ba',peliculas:'bpu',libros:'bb',citas:'bp',salud:'bp',cumples:'bc',ejercicio:'bt',recordatorios:'bpu',ideas:'bgr'};
 const LABELS={compras:'Compras',eventos:'Evento',peliculas:'Película',libros:'Libro',citas:'Cita',salud:'Salud',cumples:'Cumpleaños',ejercicio:'Ejercicio',recordatorios:'Recordatorio',ideas:'Idea'};
 const HINTS={compras:'¿Qué necesitas comprar?',eventos:'Nombre del evento...',peliculas:'Título de la película...',libros:'Título del libro...',citas:'¿Con quién y dónde?',salud:'Medicamento, inyección...',cumples:'Nombre de la persona...',ejercicio:'Rutina, meta, actividad...',recordatorios:'¿Qué quieres recordar?',ideas:'Anota tu idea...'};
-const NEED_DATE=['eventos','citas','salud','cumples','recordatorios'];
-const NEED_LOC=['eventos','citas'];
+const NEED_DATE=['eventos','citas','salud','cumples','recordatorios','ejercicio'];
+const NEED_LOC=['eventos','citas','ejercicio'];
 
 async function init(){
   // Safety timeout: si getSession tarda más de 5s o falla, mostrar login
@@ -426,11 +452,62 @@ function renderItem(item,c,showPlan){
   const ls=item.location?`<div class="lmeta">📍 ${item.location}</div>`:'';
   const ml=item.location?`<a href="https://maps.google.com/?q=${encodeURIComponent(item.location)}" target="_blank" style="font-size:10px;color:var(--pink);text-decoration:none;margin-right:4px" onclick="event.stopPropagation()">maps</a>`:'';
   const pb=showPlan&&!item.done?`<button class="plan-btn" onclick="makePlan(event,'${item.id}','${c}')">hacer plan</button>`:'';
-  return `<div class="list-item"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}${ls}</div>${ml}${pb}<button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>`;
+  return `<div class="list-item"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}${ls}</div>${ml}${pb}<button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button><button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>`;
 }
 
 async function toggleItem(id,c,done){await toggleItemDB(id,c,done);render();}
 async function deleteItem(id,c){await deleteItemDB(id,c);render();}
+
+let editingId=null,editingCat=null;
+
+function openEdit(e,id,c){
+  e.stopPropagation();
+  const item=(items[c]||[]).find(i=>i.id===id);
+  if(!item)return;
+  editingId=id;editingCat=c;
+  document.getElementById('editInput').value=item.text;
+  const needDate=NEED_DATE.includes(c);
+  const needLoc=NEED_LOC.includes(c);
+  document.getElementById('editDateWrap').style.display=needDate?'block':'none';
+  document.getElementById('editLocationWrap').style.display=needLoc?'block':'none';
+  if(needDate){
+    const isCumple=c==='cumples';
+    document.getElementById('editDate').style.display=isCumple?'none':'block';
+    document.getElementById('editDateSimple').style.display=isCumple?'block':'none';
+    document.getElementById('editDateLabel').textContent=isCumple?'Fecha de cumpleaños':'Fecha y hora';
+    if(item.date){
+      if(isCumple)document.getElementById('editDateSimple').value=item.date.split('T')[0];
+      else document.getElementById('editDate').value=item.date.length<=10?item.date+'T00:00':item.date.slice(0,16);
+    }
+  }
+  if(needLoc)document.getElementById('editLocation').value=item.location||'';
+  document.getElementById('editOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('editInput').focus(),350);
+}
+
+function closeEdit(){
+  document.getElementById('editOverlay').classList.remove('open');
+  editingId=null;editingCat=null;
+}
+
+function handleEditOverlayClick(e){if(e.target===document.getElementById('editOverlay'))closeEdit();}
+
+async function saveEdit(){
+  const text=document.getElementById('editInput').value.trim();
+  if(!text){document.getElementById('editInput').focus();return;}
+  const c=editingCat;
+  const isCumple=c==='cumples';
+  const dateEl=(!isCumple&&document.getElementById('editDate').style.display!='none')?document.getElementById('editDate'):document.getElementById('editDateSimple');
+  const date=NEED_DATE.includes(c)?(dateEl.value||null):null;
+  const location=NEED_LOC.includes(c)?(document.getElementById('editLocation').value.trim()||null):null;
+  const btn=document.getElementById('editBtn');
+  btn.textContent='Guardando...';btn.disabled=true;
+  await sb.from('items').update({text,date,location}).eq('id',editingId).eq('user_id',user.id);
+  const item=(items[c]||[]).find(i=>i.id===editingId);
+  if(item){item.text=text;item.date=date;item.location=location;}
+  btn.textContent='Guardar';btn.disabled=false;
+  closeEdit();render();
+}
 function sendWA(msg){window.open(`https://wa.me/?text=${msg}`,'_blank');}
 
 function makePlan(e,id,c){
@@ -513,8 +590,9 @@ function fmtTime(s){try{return new Date(s).toLocaleTimeString('es-MX',{hour:'2-d
 function fmtDate(s){try{const d=new Date(s.length<=10?s+'T12:00':s);return d.toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'});}catch{return s;}}
 
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){closeSheet();document.getElementById('userOverlay').classList.remove('open');}
+  if(e.key==='Escape'){closeSheet();closeEdit();document.getElementById('userOverlay').classList.remove('open');}
   if(e.key==='Enter'&&document.getElementById('overlay').classList.contains('open'))saveItem();
+  if(e.key==='Enter'&&document.getElementById('editOverlay').classList.contains('open'))saveEdit();
 });
 
 init();
