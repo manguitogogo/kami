@@ -194,6 +194,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <button class="tab" data-view="citas" onclick="switchView('citas',this)"><div class="tab-dot" style="background:#E8637A"></div>Citas</button>
     <button class="tab" data-view="salud" onclick="switchView('salud',this)"><div class="tab-dot" style="background:#e24b4a"></div>Salud</button>
     <button class="tab" data-view="cumples" onclick="switchView('cumples',this)"><div class="tab-dot" style="background:#d85a30"></div>Cumpleaños</button>
+    <button class="tab" data-view="ejercicio" onclick="switchView('ejercicio',this)"><div class="tab-dot" style="background:#0f6e56"></div>Ejercicio</button>
+    <button class="tab" data-view="recordatorios" onclick="switchView('recordatorios',this)"><div class="tab-dot" style="background:#534ab7"></div>Recordatorios</button>
     <button class="tab" data-view="ideas" onclick="switchView('ideas',this)"><div class="tab-dot" style="background:#888780"></div>Ideas</button>
   </div>
   <div class="main" id="mainContent"></div>
@@ -214,14 +216,17 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <button class="cat-chip" data-cat="citas" onclick="selectCat(this,'citas')"><div class="cat-cdot" style="background:#E8637A"></div>Cita</button>
       <button class="cat-chip" data-cat="salud" onclick="selectCat(this,'salud')"><div class="cat-cdot" style="background:#e24b4a"></div>Salud</button>
       <button class="cat-chip" data-cat="cumples" onclick="selectCat(this,'cumples')"><div class="cat-cdot" style="background:#d85a30"></div>Cumpleaños</button>
+      <button class="cat-chip" data-cat="ejercicio" onclick="selectCat(this,'ejercicio')"><div class="cat-cdot" style="background:#0f6e56"></div>Ejercicio</button>
+      <button class="cat-chip" data-cat="recordatorios" onclick="selectCat(this,'recordatorios')"><div class="cat-cdot" style="background:#534ab7"></div>Recordatorio</button>
       <button class="cat-chip" data-cat="ideas" onclick="selectCat(this,'ideas')"><div class="cat-cdot" style="background:#888780"></div>Idea</button>
     </div>
     <div class="sheet-field">
       <input class="sheet-input" id="sheetInput" placeholder="Escribe aquí..." type="text">
     </div>
     <div class="sheet-field" id="sheetDateWrap" style="display:none">
-      <label>Fecha y hora</label>
+      <label id="sheetDateLabel">Fecha y hora</label>
       <input class="sheet-input" type="datetime-local" id="sheetDate">
+      <input class="sheet-input" type="date" id="sheetDateSimple" style="display:none">
     </div>
     <div class="sheet-field" id="sheetLocationWrap" style="display:none">
       <label>Lugar (opcional)</label>
@@ -247,11 +252,11 @@ const SURL='https://ufdzyseexhajmzghhsem.supabase.co';
 const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmZHp5c2VleGhham16Z2hoc2VtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Mjk4ODIsImV4cCI6MjA4OTUwNTg4Mn0.56BkKgvZYBwSEAQg4m8X9xReJCekN2AUULdGmFi37Qg';
 const sb=supabase.createClient(SURL,SKEY);
 let user=null,view='hoy',cat='compras',items={};
-const COLORS={compras:'#1d9e75',eventos:'#ba7517',peliculas:'#7f77dd',libros:'#378add',citas:'#E8637A',salud:'#e24b4a',cumples:'#d85a30',ideas:'#888780'};
-const BADGES={compras:'bt',eventos:'ba',peliculas:'bpu',libros:'bb',citas:'bp',salud:'bp',cumples:'bc',ideas:'bgr'};
-const LABELS={compras:'Compras',eventos:'Evento',peliculas:'Película',libros:'Libro',citas:'Cita',salud:'Salud',cumples:'Cumpleaños',ideas:'Idea'};
-const HINTS={compras:'¿Qué necesitas comprar?',eventos:'Nombre del evento...',peliculas:'Título de la película...',libros:'Título del libro...',citas:'¿Con quién y dónde?',salud:'Medicamento, inyección...',cumples:'Nombre de la persona...',ideas:'Anota tu idea...'};
-const NEED_DATE=['eventos','citas','salud','cumples'];
+const COLORS={compras:'#1d9e75',eventos:'#ba7517',peliculas:'#7f77dd',libros:'#378add',citas:'#E8637A',salud:'#e24b4a',cumples:'#d85a30',ejercicio:'#0f6e56',recordatorios:'#534ab7',ideas:'#888780'};
+const BADGES={compras:'bt',eventos:'ba',peliculas:'bpu',libros:'bb',citas:'bp',salud:'bp',cumples:'bc',ejercicio:'bt',recordatorios:'bpu',ideas:'bgr'};
+const LABELS={compras:'Compras',eventos:'Evento',peliculas:'Película',libros:'Libro',citas:'Cita',salud:'Salud',cumples:'Cumpleaños',ejercicio:'Ejercicio',recordatorios:'Recordatorio',ideas:'Idea'};
+const HINTS={compras:'¿Qué necesitas comprar?',eventos:'Nombre del evento...',peliculas:'Título de la película...',libros:'Título del libro...',citas:'¿Con quién y dónde?',salud:'Medicamento, inyección...',cumples:'Nombre de la persona...',ejercicio:'Rutina, meta, actividad...',recordatorios:'¿Qué quieres recordar?',ideas:'Anota tu idea...'};
+const NEED_DATE=['eventos','citas','salud','cumples','recordatorios'];
 const NEED_LOC=['eventos','citas'];
 
 async function init(){
@@ -313,7 +318,7 @@ async function loadItems(){
   if(!user)return;
   const{data,error}=await sb.from('items').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
   if(error){console.error(error);return;}
-  const cats=['compras','eventos','peliculas','libros','citas','salud','cumples','ideas'];
+  const cats=['compras','eventos','peliculas','libros','citas','salud','cumples','ejercicio','recordatorios','ideas'];
   items={};cats.forEach(c=>items[c]=[]);
   (data||[]).forEach(item=>{if(items[item.category])items[item.category].push(item);});
 }
@@ -397,7 +402,7 @@ function renderItem(item,c,showPlan){
   const ls=item.location?`<div class="lmeta">📍 ${item.location}</div>`:'';
   const ml=item.location?`<a href="https://maps.google.com/?q=${encodeURIComponent(item.location)}" target="_blank" style="font-size:10px;color:var(--pink);text-decoration:none;margin-right:4px" onclick="event.stopPropagation()">maps</a>`:'';
   const pb=showPlan&&!item.done?`<button class="plan-btn" onclick="makePlan(event,'${item.id}','${c}')">hacer plan</button>`:'';
-  return `<div class="list-item" onclick="toggleItem('${item.id}','${c}',${item.done})"><div class="lcheck ${item.done?'done':''}"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}${ls}</div>${ml}${pb}<button class="del-btn" onclick="event.stopPropagation();deleteItem('${item.id}','${c}')">×</button></div>`;
+  return `<div class="list-item"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''">${item.text}</div>${ds}${ls}</div>${ml}${pb}<button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>`;
 }
 
 async function toggleItem(id,c,done){await toggleItemDB(id,c,done);render();}
@@ -408,11 +413,21 @@ function makePlan(e,id,c){
   e.stopPropagation();
   const item=(items[c]||[]).find(i=>i.id===id);
   if(!item)return;
-  openSheet('eventos');
-  setTimeout(()=>{
-    document.getElementById('sheetInput').value=item.text;
-    if(item.location)document.getElementById('sheetLocation').value=item.location;
-  },400);
+  // Show plan options
+  const msg=encodeURIComponent('Oye! Te propongo un plan: '+item.text+' — ¿te apuntas? 🎉');
+  const choice=confirm('¿Qué quieres hacer con "'+item.text+'"?
+
+OK = Compartir por WhatsApp
+Cancelar = Crear evento');
+  if(choice){
+    window.open('https://wa.me/?text='+msg,'_blank');
+  } else {
+    openSheet('eventos');
+    setTimeout(()=>{
+      document.getElementById('sheetInput').value=item.text;
+      if(item.location)document.getElementById('sheetLocation').value=item.location;
+    },400);
+  }
 }
 
 function openSheet(c){
@@ -430,16 +445,24 @@ function handleOverlayClick(e){if(e.target===document.getElementById('overlay'))
 function selectCat(btn,c){
   document.querySelectorAll('.cat-chip').forEach(x=>x.classList.remove('sel'));
   btn.classList.add('sel');cat=c;
-  document.getElementById('sheetDateWrap').style.display=NEED_DATE.includes(c)?'block':'none';
+  const needDate=NEED_DATE.includes(c);
+  document.getElementById('sheetDateWrap').style.display=needDate?'block':'none';
   document.getElementById('sheetLocationWrap').style.display=NEED_LOC.includes(c)?'block':'none';
   document.getElementById('sheetInput').placeholder=HINTS[c]||'Escribe aquí...';
+  if(needDate){
+    const isCumple=c==='cumples';
+    document.getElementById('sheetDate').style.display=isCumple?'none':'block';
+    document.getElementById('sheetDateSimple').style.display=isCumple?'block':'none';
+    document.getElementById('sheetDateLabel').textContent=isCumple?'Fecha de cumpleaños':'Fecha y hora';
+  }
 }
 function selectCatByKey(c){const chip=document.querySelector(`.cat-chip[data-cat="${c}"]`);if(chip)selectCat(chip,c);}
 
 async function saveItem(){
   const text=document.getElementById('sheetInput').value.trim();
   if(!text){document.getElementById('sheetInput').focus();return;}
-  const date=document.getElementById('sheetDate').value||null;
+  const dateEl=document.getElementById('sheetDate').style.display!='none'?document.getElementById('sheetDate'):document.getElementById('sheetDateSimple');
+  const date=dateEl.value||null;
   const location=document.getElementById('sheetLocation').value.trim()||null;
   const btn=document.getElementById('saveBtn');
   btn.textContent='Guardando...';btn.disabled=true;
