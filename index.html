@@ -108,6 +108,25 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .del-btn:hover{color:var(--pink)}
 .edit-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:4px;line-height:1;opacity:0.6}
 .edit-btn:hover{opacity:1}
+.place-wrap{position:relative}
+.place-suggestions{position:absolute;top:100%;left:0;right:0;background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius-sm);z-index:500;max-height:180px;overflow-y:auto;box-shadow:var(--shadow);margin-top:2px}
+.place-item{padding:10px 13px;font-size:13px;color:var(--text);cursor:pointer;border-bottom:0.5px solid var(--border)}
+.place-item:last-child{border:none}
+.place-item:hover{background:var(--bg2)}
+.place-item small{display:block;font-size:10px;color:var(--text3);margin-top:2px}
+#inviteScreen{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;z-index:1500;text-align:center}
+.invite-logo{font-family:'DM Serif Display',serif;font-size:36px;color:var(--pink);margin-bottom:4px}
+.invite-from{font-size:12px;color:var(--text3);margin-bottom:28px}
+.invite-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:20px;width:100%;max-width:320px;text-align:left;margin-bottom:24px}
+.invite-icon{font-size:32px;margin-bottom:10px}
+.invite-title{font-size:18px;font-weight:500;color:var(--text);margin-bottom:6px}
+.invite-meta{font-size:12px;color:var(--text3);line-height:1.8}
+.invite-actions{display:flex;flex-direction:column;gap:10px;width:100%;max-width:320px}
+.invite-btn{width:100%;padding:13px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;border:none;transition:all 0.15s}
+.invite-btn.primary{background:var(--pink);color:white}
+.invite-btn.primary:hover{background:var(--pink-hover)}
+.invite-btn.secondary{background:var(--bg2);color:var(--text2);border:0.5px solid var(--border2)}
+.wa-btn.kami{background:var(--pink-light);color:var(--pink);border-color:rgba(232,99,122,0.2)}
 .plan-btn{font-size:10px;padding:3px 8px;border-radius:20px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text3);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;flex-shrink:0}
 .plan-btn:hover{background:var(--pink-light);color:var(--pink)}
 .empty{text-align:center;padding:40px 20px;color:var(--text3)}
@@ -179,6 +198,20 @@ Continuar con Google
 
 <div id="sentScreen" style="display:none"></div>
 
+<div id="inviteScreen">
+  <div class="invite-logo">kami</div>
+  <div class="invite-from" id="inviteFrom">te invitó a un plan</div>
+  <div class="invite-card">
+    <div class="invite-icon" id="inviteIcon">🏃</div>
+    <div class="invite-title" id="inviteTitle">—</div>
+    <div class="invite-meta" id="inviteMeta"></div>
+  </div>
+  <div class="invite-actions">
+    <button class="invite-btn primary" id="inviteSaveBtn" onclick="saveInvite()">Guardar en mi Kami ✨</button>
+    <button class="invite-btn secondary" onclick="dismissInvite()">Solo ver</button>
+  </div>
+</div>
+
 <div id="appShell">
 <div class="topbar">
 <div class="logo">kami</div>
@@ -232,7 +265,10 @@ Continuar con Google
 </div>
 <div class="sheet-field" id="sheetLocationWrap" style="display:none">
 <label>Lugar (opcional)</label>
-<input class="sheet-input" id="sheetLocation" placeholder="ej. Cinemex Antara, Torre Médica...">
+<div class="place-wrap">
+<input class="sheet-input" id="sheetLocation" placeholder="Busca un lugar..." type="text" autocomplete="off" oninput="searchPlace(this,'sheetPlaceSug')" onblur="hideSug('sheetPlaceSug')">
+<div class="place-suggestions" id="sheetPlaceSug" style="display:none"></div>
+</div>
 </div>
 <div class="sheet-field" id="sheetGuestWrap" style="display:none">
 <label>Invitado (opcional)</label>
@@ -268,7 +304,10 @@ Continuar con Google
 </div>
 <div class="sheet-field" id="editLocationWrap" style="display:none">
 <label>Lugar (opcional)</label>
-<input class="sheet-input" id="editLocation" placeholder="ej. Cinemex Antara, Torre Médica...">
+<div class="place-wrap">
+<input class="sheet-input" id="editLocation" placeholder="Busca un lugar..." type="text" autocomplete="off" oninput="searchPlace(this,'editPlaceSug')" onblur="hideSug('editPlaceSug')">
+<div class="place-suggestions" id="editPlaceSug" style="display:none"></div>
+</div>
 </div>
 <div class="sheet-field" id="editGuestWrap" style="display:none">
 <label>Invitado (opcional)</label>
@@ -293,23 +332,168 @@ const HINTS={compras:'¿Qué necesitas comprar?',eventos:'Nombre del evento...',
 const NEED_DATE=['eventos','citas','salud','cumples','recordatorios','ejercicio'];
 const NEED_LOC=['eventos','citas','ejercicio'];
 
-async function init(){
-  // Safety timeout: si getSession tarda más de 5s o falla, mostrar login
-  const safetyTimer = setTimeout(()=>{
-    if(document.getElementById('loadingScreen').style.display!=='none'){
-      console.warn('Auth timeout — showing login');
-      showAuth();
-    }
-  }, 5000);
+// Place data storage: {name, lat, lon}
+let placeData={sheet:null,edit:null};
+let placeTimer=null;
 
-  try {
-    const {data:{session}} = await sb.auth.getSession();
+async function searchPlace(input,sugId){
+  const q=input.value.trim();
+  const sug=document.getElementById(sugId);
+  if(q.length<3){sug.style.display='none';return;}
+  clearTimeout(placeTimer);
+  placeTimer=setTimeout(async()=>{
+    try{
+      const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&accept-language=es`);
+      const data=await r.json();
+      if(!data.length){sug.style.display='none';return;}
+      sug.innerHTML=data.map((p,i)=>`<div class="place-item" onmousedown="selectPlace(event,'${sugId}','${input.id}',${p.lat},${p.lon},'${p.display_name.replace(/'/g,'')}')"><b>${p.display_name.split(',')[0]}</b><small>${p.display_name.split(',').slice(1,3).join(',')}</small></div>`).join('');
+      sug.style.display='block';
+    }catch(e){sug.style.display='none';}
+  },400);
+}
+
+function selectPlace(e,sugId,inputId,lat,lon,name){
+  e.preventDefault();
+  const shortName=name.split(',')[0];
+  document.getElementById(inputId).value=shortName;
+  const key=inputId==='sheetLocation'?'sheet':'edit';
+  placeData[key]={name:shortName,lat,lon};
+  document.getElementById(sugId).style.display='none';
+}
+
+function hideSug(sugId){setTimeout(()=>{const s=document.getElementById(sugId);if(s)s.style.display='none';},200);}
+
+function getLocationStr(key){
+  if(placeData[key])return JSON.stringify(placeData[key]);
+  const inputId=key==='sheet'?'sheetLocation':'editLocation';
+  const val=document.getElementById(inputId).value.trim();
+  return val||null;
+}
+
+function parseLocationFull(raw){
+  if(!raw)return{loc:null,lat:null,lon:null,guest:null,locName:null};
+  // Check if encoded as guest separator
+  const parts=raw.split('||');
+  const locPart=parts[0]||null;
+  const guest=parts[1]||null;
+  if(!locPart)return{loc:null,lat:null,lon:null,guest,locName:null};
+  try{
+    const obj=JSON.parse(locPart);
+    return{loc:locPart,lat:obj.lat,lon:obj.lon,locName:obj.name,guest};
+  }catch{
+    return{loc:locPart,lat:null,lon:null,locName:locPart,guest};
+  }
+}
+
+function mapsUrl(lat,lon,name){
+  if(lat&&lon)return `https://maps.google.com/?q=${lat},${lon}`;
+  if(name)return `https://maps.google.com/?q=${encodeURIComponent(name)}`;
+  return null;
+}
+
+// Invite system
+let inviteData=null;
+
+function checkInviteParams(){
+  const params=new URLSearchParams(window.location.search);
+  if(!params.get('invite'))return false;
+  inviteData={
+    cat:params.get('invite')||'ejercicio',
+    text:params.get('txt')||'',
+    date:params.get('date')||null,
+    location:params.get('loc')||null,
+    from:params.get('de')||'Alguien'
+  };
+  return true;
+}
+
+function showInviteScreen(){
+  if(!inviteData)return;
+  const{cat,text,date,location,from}=inviteData;
+  const icons={ejercicio:'🏃',eventos:'📅',citas:'🤝',peliculas:'🎬',libros:'📚',compras:'🛒',salud:'💊',cumples:'🎂',recordatorios:'🔔',ideas:'💡'};
+  document.getElementById('inviteIcon').textContent=icons[cat]||'✨';
+  document.getElementById('inviteTitle').textContent=text;
+  document.getElementById('inviteFrom').textContent=`${from} te invitó a un plan`;
+  const{locName,lat,lon}=parseLocationFull(location);
+  let meta='';
+  if(date)meta+=`📅 ${fmtDate(date)}<br>`;
+  if(locName)meta+=`📍 ${locName}`;
+  document.getElementById('inviteMeta').innerHTML=meta||'Sin detalles adicionales';
+  document.getElementById('loadingScreen').style.display='none';
+  document.getElementById('inviteScreen').style.display='flex';
+}
+
+async function saveInvite(){
+  const btn=document.getElementById('inviteSaveBtn');
+  btn.textContent='Guardando...';btn.disabled=true;
+  if(!user){
+    // Save invite data to sessionStorage and redirect to auth
+    sessionStorage.setItem('pendingInvite',JSON.stringify(inviteData));
+    await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.href}});
+    return;
+  }
+  const{cat,text,date,location}=inviteData;
+  await addItem(cat,text,date,location);
+  btn.textContent='¡Guardado! ✨';
+  setTimeout(()=>{
+    document.getElementById('inviteScreen').style.display='none';
+    showApp();
+  },1000);
+}
+
+function dismissInvite(){
+  document.getElementById('inviteScreen').style.display='none';
+  if(user)showApp();else showAuth();
+}
+
+function buildInviteLink(item,c,from){
+  const{locName,lat,lon,guest}=parseLocationFull(item.location);
+  const locParam=locName?`&loc=${encodeURIComponent(item.location||locName)}`:'';
+  const dateParam=item.date?`&date=${encodeURIComponent(item.date)}`:'';
+  const fromParam=from?`&de=${encodeURIComponent(from)}`:'';
+  return `https://kami-kohl.vercel.app?invite=${c}&txt=${encodeURIComponent(item.text)}${dateParam}${locParam}${fromParam}`;
+}
+
+async function init(){
+  const safetyTimer=setTimeout(()=>{
+    if(document.getElementById('loadingScreen').style.display!=='none'){
+      if(checkInviteParams())showInviteScreen();
+      else showAuth();
+    }
+  },5000);
+
+  try{
+    // Check for pending invite from sessionStorage after OAuth redirect
+    const pending=sessionStorage.getItem('pendingInvite');
+    if(pending){
+      inviteData=JSON.parse(pending);
+      sessionStorage.removeItem('pendingInvite');
+    } else {
+      checkInviteParams();
+    }
+
+    const{data:{session}}=await sb.auth.getSession();
     clearTimeout(safetyTimer);
-    if(session){user=session.user;await showApp();}
-    else showAuth();
-  } catch(e) {
+
+    if(session){
+      user=session.user;
+      if(inviteData){
+        // Auto-save pending invite
+        await loadItems();
+        await addItem(inviteData.cat,inviteData.text,inviteData.date,inviteData.location);
+        inviteData=null;
+        // Clean URL
+        window.history.replaceState({},'','/');
+        await showApp();
+      } else {
+        await showApp();
+      }
+    } else {
+      if(inviteData)showInviteScreen();
+      else showAuth();
+    }
+  }catch(e){
     clearTimeout(safetyTimer);
-    console.error('Auth error:',e);
     showAuth();
   }
 
@@ -465,24 +649,37 @@ function renderItem(item,c,showPlan){
   // Ejercicio con invitado → card estilo WhatsApp
   if(c==='ejercicio'&&item.location&&item.location.includes('||')){
     const{loc,guest}=parseLocation(item.location);
+    const{locName,lat,lon}=parseLocationFull(loc);
     const ds=item.date?fmtDate(item.date):'';
-    const meta=[guest?`Con: ${guest}`:'',ds,loc].filter(Boolean).join(' · ');
-    const msg=`Oye ${guest}! Te propongo hacer ejercicio juntos: ${item.text}${loc?' en '+loc:''} 💪 ¿te apuntas?`;
+    const meta=[guest?`Con: ${guest}`:'',ds,locName].filter(Boolean).join(' · ');
+    const mapsLink=mapsUrl(lat,lon,locName);
+    const userName=user?.user_metadata?.full_name||user?.email||'';
+    const inviteLink=buildInviteLink(item,c,userName);
+    const timeStr=item.date&&item.date.includes('T')?`📅 ${fmtDate(item.date)}, ${fmtTime(item.date)}`:(item.date?`📅 ${fmtDate(item.date)}`:'');
+    const locStr=locName?(mapsLink?`📍 ${locName} → ${mapsLink}`:`📍 ${locName}`):'';
+    const msg=`Oye ${guest}! Te propongo hacer ejercicio juntos: *${item.text}* 💪\n${timeStr}\n${locStr}\n\n¿Te apuntas? Guárdalo en tu Kami 👉 ${inviteLink}`.trim();
     return `<div class="wa-card">
-      <div class="wa-head"><div class="wa-icon">🏃</div><div><div class="wa-name">${item.text}</div><div class="wa-sub">${meta}</div></div></div>
-      <div class="wa-bubble">${msg}</div>
+      <div class="wa-head"><div class="wa-icon" style="background:#0f6e56">🏃</div><div><div class="wa-name">${item.text}</div><div class="wa-sub">${meta}</div></div><button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" style="margin-left:auto">✏️</button><button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>
+      <div class="wa-bubble">${msg.replace(/\n/g,'<br>')}</div>
       <div class="wa-actions">
-        <button class="wa-btn" onclick="openEdit(event,'${item.id}','${c}')">Editar</button>
-        <button class="wa-btn send" onclick="sendWA('${encodeURIComponent(msg)}')">Enviar por WhatsApp 💚</button>
+        <button class="wa-btn kami" onclick="copyInvite('${encodeURIComponent(inviteLink)}')">🔗 Invitar a Kami</button>
+        <button class="wa-btn send" onclick="sendWA('${encodeURIComponent(msg)}')">WhatsApp 💚</button>
       </div>
     </div>`;
   }
+  const{loc,guest}=parseLocation(item.location);
+  const{locName,lat,lon}=parseLocationFull(loc);
   const ds=item.date?`<div class="lmeta">${fmtDate(item.date)}</div>`:'';
-  const{loc}=parseLocation(item.location);
-  const ls=loc?`<div class="lmeta">📍 ${loc}</div>`:'';
-  const ml=loc?`<a href="https://maps.google.com/?q=${encodeURIComponent(loc)}" target="_blank" style="font-size:10px;color:var(--pink);text-decoration:none;margin-right:4px" onclick="event.stopPropagation()">maps</a>`:'';
+  const ls=locName?`<div class="lmeta">📍 ${locName}</div>`:'';
+  const mapLink=mapsUrl(lat,lon,locName);
+  const ml=mapLink?`<a href="${mapLink}" target="_blank" style="font-size:10px;color:var(--pink);text-decoration:none;margin-right:4px" onclick="event.stopPropagation()">maps</a>`:'';
   const pb=showPlan&&!item.done?`<button class="plan-btn" onclick="makePlan(event,'${item.id}','${c}')">hacer plan</button>`:'';
   return `<div class="list-item"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}${ls}</div>${ml}${pb}<button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button><button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>`;
+}
+
+function copyInvite(encodedLink){
+  const link=decodeURIComponent(encodedLink);
+  navigator.clipboard.writeText(link).then(()=>alert('¡Link copiado! Compártelo con quien quieras 🔗')).catch(()=>alert(link));
 }
 
 async function toggleItem(id,c,done){await toggleItemDB(id,c,done);render();}
@@ -513,7 +710,8 @@ function openEdit(e,id,c){
   }
   if(needLoc){
     const{loc,guest}=parseLocation(item.location);
-    document.getElementById('editLocation').value=loc||'';
+    const{locName}=parseLocationFull(loc);
+    document.getElementById('editLocation').value=locName||'';
     if(c==='ejercicio')document.getElementById('editGuest').value=guest||'';
   }
   document.getElementById('editOverlay').classList.add('open');
@@ -534,7 +732,7 @@ async function saveEdit(){
   const isCumple=c==='cumples';
   const dateEl=(!isCumple&&document.getElementById('editDate').style.display!='none')?document.getElementById('editDate'):document.getElementById('editDateSimple');
   const date=NEED_DATE.includes(c)?(dateEl.value||null):null;
-  let location=NEED_LOC.includes(c)?(document.getElementById('editLocation').value.trim()||null):null;
+  let location=NEED_LOC.includes(c)?getLocationStr('edit'):null;
   if(c==='ejercicio'){
     const guest=document.getElementById('editGuest').value.trim();
     if(guest) location=(location?location:'')+'||'+guest;
@@ -544,6 +742,7 @@ async function saveEdit(){
   await sb.from('items').update({text,date,location}).eq('id',editingId).eq('user_id',user.id);
   const item=(items[c]||[]).find(i=>i.id===editingId);
   if(item){item.text=text;item.date=date;item.location=location;}
+  placeData.edit=null;
   btn.textContent='Guardar';btn.disabled=false;
   closeEdit();render();
 }
@@ -604,7 +803,7 @@ async function saveItem(){
   if(!text){document.getElementById('sheetInput').focus();return;}
   const dateEl=document.getElementById('sheetDate').style.display!='none'?document.getElementById('sheetDate'):document.getElementById('sheetDateSimple');
   const date=dateEl.value||null;
-  let location=document.getElementById('sheetLocation').value.trim()||null;
+  let location=getLocationStr('sheet');
   if(cat==='ejercicio'){
     const guest=document.getElementById('sheetGuest').value.trim();
     if(guest) location=(location?location:'')+'||'+guest;
@@ -612,6 +811,7 @@ async function saveItem(){
   const btn=document.getElementById('saveBtn');
   btn.textContent='Guardando...';btn.disabled=true;
   await addItem(cat,text,date,location);
+  placeData.sheet=null;
   btn.textContent='Guardar';btn.disabled=false;
   closeSheet();switchViewTo(cat);
 }
