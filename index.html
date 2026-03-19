@@ -260,13 +260,28 @@ const NEED_DATE=['eventos','citas','salud','cumples','recordatorios'];
 const NEED_LOC=['eventos','citas'];
 
 async function init(){
-  const{data:{session}}=await sb.auth.getSession();
-  if(session){user=session.user;await showApp();}else showAuth();
+  // Timeout de seguridad: si algo falla, mostrar auth después de 4 segundos
+  const safetyTimer = setTimeout(() => {
+    if(document.getElementById('loadingScreen').style.display !== 'none') {
+      showAuth();
+    }
+  }, 4000);
+
+  try {
+    const {data:{session}} = await sb.auth.getSession();
+    clearTimeout(safetyTimer);
+    if(session){ user=session.user; await showApp(); } else showAuth();
+  } catch(e) {
+    clearTimeout(safetyTimer);
+    showAuth();
+  }
+
   sb.auth.onAuthStateChange(async(_,s)=>{
     if(s?.user){user=s.user;await showApp();}
     else{user=null;showAuth();}
   });
 }
+
 
 async function signInGoogle(){
   const btn=document.getElementById('authBtn');
