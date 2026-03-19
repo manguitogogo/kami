@@ -1,0 +1,18 @@
+{
+  "name": "Kami",
+  "short_name": "Kami",
+  "description": "Tu espacio para recordar todo lo que importa",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F6F3",
+  "theme_color": "#E8637A",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
