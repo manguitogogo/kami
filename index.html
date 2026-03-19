@@ -322,8 +322,12 @@ Continuar con Google
 <input class="sheet-input" id="sheetLocation" placeholder="Busca o escribe un lugar..." type="text" autocomplete="off" oninput="searchPlace(this,'sheetPlaceSug')" onblur="hideSug('sheetPlaceSug')">
 <div class="place-suggestions" id="sheetPlaceSug" style="display:none"></div>
 </div>
-<div style="font-size:10px;color:var(--text3);margin-top:4px;padding:0 2px">Si no aparece sugerencia, escribe el nombre directo ✍️</div>
+<div style="font-size:10px;color:var(--text3);margin-top:4px;padding:0 2px">Si no aparece, escribe el nombre y agrega los links abajo ✍️</div>
 <div id="sheetPlaceInfo" style="display:none;margin-top:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--radius-sm);font-size:11px;line-height:1.8"></div>
+<div id="sheetPlaceLinksWrap" style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+<input class="sheet-input" id="sheetMapsLink" placeholder="🗺️ Link de Google Maps (opcional)" type="url" style="font-size:12px;padding:9px 12px">
+<input class="sheet-input" id="sheetWebLink" placeholder="🌐 Sitio web o Instagram (opcional)" type="url" style="font-size:12px;padding:9px 12px">
+</div>
 </div>
 <div class="sheet-field" id="sheetGuestWrap" style="display:none">
 <label>Invitado (opcional)</label>
@@ -393,6 +397,11 @@ Continuar con Google
 <input class="sheet-input" id="cumpleEventLocation" placeholder="Busca o escribe un lugar..." type="text" autocomplete="off" oninput="searchPlace(this,'cumpleEventPlaceSug')" onblur="hideSug('cumpleEventPlaceSug')">
 <div class="place-suggestions" id="cumpleEventPlaceSug" style="display:none"></div>
 </div>
+<div style="font-size:10px;color:var(--text3);margin-top:4px;padding:0 2px">Si no aparece, escribe el nombre y agrega los links ✍️</div>
+<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+<input class="sheet-input" id="cumpleMapsLink" placeholder="🗺️ Link de Google Maps (opcional)" type="url" style="font-size:12px;padding:9px 12px">
+<input class="sheet-input" id="cumpleWebLink" placeholder="🌐 Sitio web o Instagram (opcional)" type="url" style="font-size:12px;padding:9px 12px">
+</div>
 </div>
 <div class="sheet-actions">
 <button class="btn-cancel" onclick="closeCumpleEvent()">Cancelar</button>
@@ -420,8 +429,12 @@ Continuar con Google
 <input class="sheet-input" id="editLocation" placeholder="Busca o escribe un lugar..." type="text" autocomplete="off" oninput="searchPlace(this,'editPlaceSug')" onblur="hideSug('editPlaceSug')">
 <div class="place-suggestions" id="editPlaceSug" style="display:none"></div>
 </div>
-<div style="font-size:10px;color:var(--text3);margin-top:4px;padding:0 2px">Si no aparece sugerencia, escribe el nombre directo ✍️</div>
+<div style="font-size:10px;color:var(--text3);margin-top:4px;padding:0 2px">Si no aparece, escribe el nombre y agrega los links abajo ✍️</div>
 <div id="editPlaceInfo" style="display:none;margin-top:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--radius-sm);font-size:11px;line-height:1.8"></div>
+<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+<input class="sheet-input" id="editMapsLink" placeholder="🗺️ Link de Google Maps (opcional)" type="url" style="font-size:12px;padding:9px 12px">
+<input class="sheet-input" id="editWebLink" placeholder="🌐 Sitio web o Instagram (opcional)" type="url" style="font-size:12px;padding:9px 12px">
+</div>
 </div>
 <div class="sheet-field" id="editGuestWrap" style="display:none">
 <label>Invitado (opcional)</label>
@@ -751,13 +764,37 @@ async function searchPlace(input,sugId){
   clearTimeout(placeTimer);
   placeTimer=setTimeout(async()=>{
     try{
-      const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&accept-language=es`);
+      // Search with countrycodes=mx for better Mexico results
+      const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&accept-language=es&countrycodes=mx&addressdetails=1`);
       const data=await r.json();
-      if(!data.length){sug.style.display='none';return;}
-      sug.innerHTML=data.map((p,i)=>`<div class="place-item" onmousedown="selectPlace(event,'${sugId}','${input.id}',${p.lat},${p.lon},'${p.display_name.replace(/'/g,'')}')"><b>${p.display_name.split(',')[0]}</b><small>${p.display_name.split(',').slice(1,3).join(',')}</small></div>`).join('');
+      if(!data.length){
+        // Show manual entry option if no results
+        sug.innerHTML=`<div class="place-item" style="color:var(--text3)" onmousedown="useManualPlace(event,'${input.id}','${sugId}')">✍️ Usar "${q}" como está</div>`;
+        sug.style.display='block';
+        return;
+      }
+      sug.innerHTML=data.map((p,i)=>{
+        const safeName=p.display_name.replace(/'/g,'').replace(/"/g,'');
+        const handler=`selectPlace(event,'${sugId}','${input.id}',${p.lat},${p.lon},'${safeName}')`;
+        const city=p.address?.city||p.address?.town||p.address?.municipality||'';
+        const suburb=p.address?.suburb||p.address?.neighbourhood||'';
+        const sub=[suburb,city].filter(Boolean).join(', ');
+        return `<div class="place-item" onmousedown="${handler}" ontouchstart="${handler}"><b>${p.display_name.split(',')[0]}</b><small>${sub||p.display_name.split(',').slice(1,3).join(',')}</small></div>`;
+      }).join('');
+      // Add manual option at bottom
+      sug.innerHTML+=`<div class="place-item" style="color:var(--text3);border-top:0.5px solid var(--border)" onmousedown="useManualPlace(event,'${input.id}','${sugId}')" ontouchstart="useManualPlace(event,'${input.id}','${sugId}')">✍️ Usar "${q}" como está</div>`;
       sug.style.display='block';
     }catch(e){sug.style.display='none';}
   },400);
+}
+
+function useManualPlace(e,inputId,sugId){
+  e.preventDefault();
+  const val=document.getElementById(inputId).value.trim();
+  if(!val)return;
+  const key=inputId==='sheetLocation'?'sheet':inputId==='editLocation'?'edit':'cumple';
+  placeData[key]={name:val,lat:null,lon:null};
+  document.getElementById(sugId).style.display='none';
 }
 
 function selectPlace(e,sugId,inputId,lat,lon,name){
@@ -805,26 +842,34 @@ async function fetchPlaceInfo(lat,lon,infoId){
   }catch(e){/* silently fail */}
 }
 
-function hideSug(sugId){setTimeout(()=>{const s=document.getElementById(sugId);if(s)s.style.display='none';},200);}
+function hideSug(sugId){setTimeout(()=>{const s=document.getElementById(sugId);if(s)s.style.display='none';},400);}
 
 function getLocationStr(key){
-  if(placeData[key])return JSON.stringify(placeData[key]);
-  const inputId=key==='sheet'?'sheetLocation':'editLocation';
-  const val=document.getElementById(inputId).value.trim();
-  return val||null;
+  let obj=placeData[key];
+  const inputId=key==='sheet'?'sheetLocation':key==='edit'?'editLocation':'cumpleEventLocation';
+  const mapsId=key==='sheet'?'sheetMapsLink':key==='edit'?'editMapsLink':'cumpleMapsLink';
+  const webId=key==='sheet'?'sheetWebLink':key==='edit'?'editWebLink':'cumpleWebLink';
+  const val=document.getElementById(inputId)?.value.trim()||'';
+  const mapsLink=document.getElementById(mapsId)?.value.trim()||'';
+  const webLink=document.getElementById(webId)?.value.trim()||'';
+  if(!val&&!obj)return null;
+  if(!obj)obj={name:val,lat:null,lon:null};
+  if(mapsLink)obj.mapsLink=mapsLink;
+  if(webLink)obj.website=webLink;
+  return JSON.stringify(obj);
 }
 
 function parseLocationFull(raw){
-  if(!raw)return{loc:null,lat:null,lon:null,guest:null,locName:null,website:null,instagram:null,phone:null,hours:null};
+  if(!raw)return{loc:null,lat:null,lon:null,guest:null,locName:null,website:null,instagram:null,phone:null,hours:null,mapsLink:null};
   const parts=raw.split('||');
   const locPart=parts[0]||null;
   const guest=parts[1]||null;
-  if(!locPart)return{loc:null,lat:null,lon:null,guest,locName:null,website:null,instagram:null,phone:null,hours:null};
+  if(!locPart)return{loc:null,lat:null,lon:null,guest,locName:null,website:null,instagram:null,phone:null,hours:null,mapsLink:null};
   try{
     const obj=JSON.parse(locPart);
-    return{loc:locPart,lat:obj.lat,lon:obj.lon,locName:obj.name,guest,website:obj.website||null,instagram:obj.instagram||null,phone:obj.phone||null,hours:obj.hours||null};
+    return{loc:locPart,lat:obj.lat,lon:obj.lon,locName:obj.name,guest,website:obj.website||null,instagram:obj.instagram||null,phone:obj.phone||null,hours:obj.hours||null,mapsLink:obj.mapsLink||null};
   }catch{
-    return{loc:locPart,lat:null,lon:null,locName:locPart,guest,website:null,instagram:null,phone:null,hours:null};
+    return{loc:locPart,lat:null,lon:null,locName:locPart,guest,website:null,instagram:null,phone:null,hours:null,mapsLink:null};
   }
 }
 
@@ -1300,14 +1345,13 @@ function renderItem(item,c,showPlan){
     </div>`;
   }
   const{loc}=parseLocation(item.location);
-  const{locName,lat,lon,website,instagram,phone,hours}=parseLocationFull(loc);
+  const{locName,lat,lon,website,phone,hours,mapsLink}=parseLocationFull(loc);
   const ds=item.date?`<div class="lmeta">${fmtDate(item.date)}${item.date.includes('T')?', '+fmtTime(item.date):''}</div>`:'';
-  const mapLink=mapsUrl(lat,lon,locName);
-  // Place info row
+  // Maps link: prefer manual mapsLink, then coords, then name search
+  const finalMapsLink=mapsLink||mapsUrl(lat,lon,locName);
   const placeLinks=[
-    mapLink?`<a href="${mapLink}" target="_blank" style="color:var(--pink);text-decoration:none;font-size:10px">📍 Maps</a>`:'',
-    website?`<a href="${website}" target="_blank" style="color:var(--pink);text-decoration:none;font-size:10px">🌐 Web</a>`:'',
-    instagram?`<a href="https://instagram.com/${instagram.replace('@','')}" target="_blank" style="color:var(--pink);text-decoration:none;font-size:10px">📸 IG</a>`:'',
+    finalMapsLink?`<a href="${finalMapsLink}" target="_blank" style="color:var(--pink);text-decoration:none;font-size:10px">📍 Maps</a>`:'',
+    website?`<a href="${website.startsWith('http')?website:'https://'+website}" target="_blank" style="color:var(--pink);text-decoration:none;font-size:10px">🌐 Web</a>`:'',
     phone?`<a href="tel:${phone.replace(/\s/g,'')}" style="color:var(--pink);text-decoration:none;font-size:10px">📞</a>`:'',
   ].filter(Boolean);
   const ls=locName?`<div class="lmeta">📍 ${locName}${hours?' · 🕐 '+hours:''}</div>`:'';
@@ -1371,9 +1415,15 @@ async function saveCumpleEvent(){
   const text=document.getElementById('cumpleEventInput').value.trim();
   if(!text){document.getElementById('cumpleEventInput').focus();return;}
   const date=document.getElementById('cumpleEventDate').value||null;
-  let location=placeData.cumple?JSON.stringify(placeData.cumple):(document.getElementById('cumpleEventLocation').value.trim()||null);
-  // Store cumpleId in location field with prefix @@
-  if(cumpleEventForId) location=(location?location:'')+'@@'+cumpleEventForId;
+  const locName=document.getElementById('cumpleEventLocation').value.trim();
+  const mapsLink=document.getElementById('cumpleMapsLink')?.value.trim()||'';
+  const webLink=document.getElementById('cumpleWebLink')?.value.trim()||'';
+  let locObj=placeData.cumple||null;
+  if(!locObj&&locName)locObj={name:locName,lat:null,lon:null};
+  if(locObj&&mapsLink)locObj.mapsLink=mapsLink;
+  if(locObj&&webLink)locObj.website=webLink;
+  let location=locObj?JSON.stringify(locObj):null;
+  if(cumpleEventForId)location=(location?location:'')+'@@'+cumpleEventForId;
   const btn=document.getElementById('cumpleEventBtn');
   btn.textContent='Guardando...';btn.disabled=true;
   await addItem('eventos',text,date,location);
@@ -1415,8 +1465,10 @@ function openEdit(e,id,c){
   }
   if(needLoc){
     const{loc,guest}=parseLocation(item.location);
-    const{locName}=parseLocationFull(loc);
+    const{locName,mapsLink,website}=parseLocationFull(loc);
     document.getElementById('editLocation').value=locName||'';
+    document.getElementById('editMapsLink').value=mapsLink||'';
+    document.getElementById('editWebLink').value=website||'';
     if(c==='ejercicio')document.getElementById('editGuest').value=guest||'';
   }
   document.getElementById('editOverlay').classList.add('open');
@@ -1480,7 +1532,7 @@ function openSheet(c){
 
 function closeSheet(){
   document.getElementById('overlay').classList.remove('open');
-  ['sheetInput','sheetDate','sheetLocation','sheetGuest','sheetLink','sheetNote'].forEach(id=>document.getElementById(id).value='');
+  ['sheetInput','sheetDate','sheetLocation','sheetGuest','sheetLink','sheetNote','sheetMapsLink','sheetWebLink'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const pi=document.getElementById('sheetPlaceInfo');if(pi){pi.style.display='none';pi.innerHTML='';}
   placeData.sheet=null;selectedSubtype=null;
 }
