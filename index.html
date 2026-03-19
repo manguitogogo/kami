@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -15,19 +16,19 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --pink:#E8637A;--pink-hover:#d45570;--pink-light:#fbeaf0;
-  --bg:#F7F6F3;--bg2:#EFEDE8;--bg3:#ffffff;--bg4:#E8E5DF;
-  --text:#1a1a18;--text2:#5a5954;--text3:#9a9893;
-  --border:rgba(0,0,0,0.07);--border2:rgba(0,0,0,0.12);
-  --card:#ffffff;--radius:12px;--radius-sm:8px;
-  --shadow:0 2px 16px rgba(0,0,0,0.06);
+--pink:#E8637A;--pink-hover:#d45570;--pink-light:#fbeaf0;
+--bg:#F7F6F3;--bg2:#EFEDE8;--bg3:#ffffff;--bg4:#E8E5DF;
+--text:#1a1a18;--text2:#5a5954;--text3:#9a9893;
+--border:rgba(0,0,0,0.07);--border2:rgba(0,0,0,0.12);
+--card:#ffffff;--radius:12px;--radius-sm:8px;
+--shadow:0 2px 16px rgba(0,0,0,0.06);
 }
 @media(prefers-color-scheme:dark){:root{
-  --bg:#191918;--bg2:#222220;--bg3:#252523;--bg4:#2e2e2c;
-  --text:#F0EDE7;--text2:#a09d98;--text3:#6a6864;
-  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
-  --card:#252523;--pink-light:#2a0f1a;
-  --shadow:0 2px 16px rgba(0,0,0,0.3);
+--bg:#191918;--bg2:#222220;--bg3:#252523;--bg4:#2e2e2c;
+--text:#F0EDE7;--text2:#a09d98;--text3:#6a6864;
+--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+--card:#252523;--pink-light:#2a0f1a;
+--shadow:0 2px 16px rgba(0,0,0,0.3);
 }}
 html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 #loadingScreen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:2000}
@@ -151,100 +152,99 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .bc{background:#faece7;color:#993c1d}
 .bgr{background:var(--bg2);color:var(--text3)}
 @media(prefers-color-scheme:dark){
-  .bb{background:#0c447c22;color:#85b7eb}
-  .ba{background:#63380622;color:#fac775}
-  .bt{background:#08504122;color:#5dcaa5}
-  .bpu{background:#26215c22;color:#afa9ec}
-  .bc{background:#4a1b0c22;color:#f0997b}
+.bb{background:#0c447c22;color:#85b7eb}
+.ba{background:#63380622;color:#fac775}
+.bt{background:#08504122;color:#5dcaa5}
+.bpu{background:#26215c22;color:#afa9ec}
+.bc{background:#4a1b0c22;color:#f0997b}
 }
 </style>
 </head>
 <body>
-
 <div id="loadingScreen"><div class="loading-logo">kami</div></div>
 
 <div id="authScreen">
-  <div class="auth-logo">kami</div>
-  <div class="auth-tagline">tu espacio para recordar<br>todo lo que importa</div>
-  <div class="auth-box">
-    <button class="auth-btn" id="authBtn" onclick="signInGoogle()" style="display:flex;align-items:center;justify-content:center;gap:12px;background:var(--card);color:var(--text);border:0.5px solid var(--border2)">
-      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
-      Continuar con Google
-    </button>
-  </div>
-  <div class="auth-note">Al entrar aceptas que tus datos se guardan de forma privada en tu cuenta personal.</div>
+<div class="auth-logo">kami</div>
+<div class="auth-tagline">tu espacio para recordar<br>todo lo que importa</div>
+<div class="auth-box">
+<button class="auth-btn" id="authBtn" onclick="signInGoogle()" style="display:flex;align-items:center;justify-content:center;gap:12px;background:var(--card);color:var(--text);border:0.5px solid var(--border2)">
+<svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
+Continuar con Google
+</button>
+</div>
+<div class="auth-note">Al entrar aceptas que tus datos se guardan de forma privada en tu cuenta personal.</div>
 </div>
 
 <div id="sentScreen" style="display:none"></div>
 
 <div id="appShell">
-  <div class="topbar">
-    <div class="logo">kami</div>
-    <div class="topbar-right">
-      <div class="date-chip" id="dateChip"></div>
-      <div class="avatar" id="userAvatar" onclick="toggleUserMenu()">k</div>
-    </div>
-  </div>
-  <div class="nav-tabs">
-    <button class="tab active" data-view="hoy" onclick="switchView('hoy',this)"><div class="tab-dot" style="background:var(--pink)"></div>Hoy</button>
-    <button class="tab" data-view="compras" onclick="switchView('compras',this)"><div class="tab-dot" style="background:#1d9e75"></div>Compras</button>
-    <button class="tab" data-view="eventos" onclick="switchView('eventos',this)"><div class="tab-dot" style="background:#ba7517"></div>Eventos</button>
-    <button class="tab" data-view="peliculas" onclick="switchView('peliculas',this)"><div class="tab-dot" style="background:#7f77dd"></div>Películas</button>
-    <button class="tab" data-view="libros" onclick="switchView('libros',this)"><div class="tab-dot" style="background:#378add"></div>Libros</button>
-    <button class="tab" data-view="citas" onclick="switchView('citas',this)"><div class="tab-dot" style="background:#E8637A"></div>Citas</button>
-    <button class="tab" data-view="salud" onclick="switchView('salud',this)"><div class="tab-dot" style="background:#e24b4a"></div>Salud</button>
-    <button class="tab" data-view="cumples" onclick="switchView('cumples',this)"><div class="tab-dot" style="background:#d85a30"></div>Cumpleaños</button>
-    <button class="tab" data-view="ejercicio" onclick="switchView('ejercicio',this)"><div class="tab-dot" style="background:#0f6e56"></div>Ejercicio</button>
-    <button class="tab" data-view="recordatorios" onclick="switchView('recordatorios',this)"><div class="tab-dot" style="background:#534ab7"></div>Recordatorios</button>
-    <button class="tab" data-view="ideas" onclick="switchView('ideas',this)"><div class="tab-dot" style="background:#888780"></div>Ideas</button>
-  </div>
-  <div class="main" id="mainContent"></div>
-  <button class="fab" onclick="openSheet()">
-    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-  </button>
+<div class="topbar">
+<div class="logo">kami</div>
+<div class="topbar-right">
+<div class="date-chip" id="dateChip"></div>
+<div class="avatar" id="userAvatar" onclick="toggleUserMenu()">k</div>
+</div>
+</div>
+<div class="nav-tabs">
+<button class="tab active" data-view="hoy" onclick="switchView('hoy',this)"><div class="tab-dot" style="background:var(--pink)"></div>Hoy</button>
+<button class="tab" data-view="compras" onclick="switchView('compras',this)"><div class="tab-dot" style="background:#1d9e75"></div>Compras</button>
+<button class="tab" data-view="eventos" onclick="switchView('eventos',this)"><div class="tab-dot" style="background:#ba7517"></div>Eventos</button>
+<button class="tab" data-view="peliculas" onclick="switchView('peliculas',this)"><div class="tab-dot" style="background:#7f77dd"></div>Películas</button>
+<button class="tab" data-view="libros" onclick="switchView('libros',this)"><div class="tab-dot" style="background:#378add"></div>Libros</button>
+<button class="tab" data-view="citas" onclick="switchView('citas',this)"><div class="tab-dot" style="background:#E8637A"></div>Citas</button>
+<button class="tab" data-view="salud" onclick="switchView('salud',this)"><div class="tab-dot" style="background:#e24b4a"></div>Salud</button>
+<button class="tab" data-view="cumples" onclick="switchView('cumples',this)"><div class="tab-dot" style="background:#d85a30"></div>Cumpleaños</button>
+<button class="tab" data-view="ejercicio" onclick="switchView('ejercicio',this)"><div class="tab-dot" style="background:#0f6e56"></div>Ejercicio</button>
+<button class="tab" data-view="recordatorios" onclick="switchView('recordatorios',this)"><div class="tab-dot" style="background:#534ab7"></div>Recordatorios</button>
+<button class="tab" data-view="ideas" onclick="switchView('ideas',this)"><div class="tab-dot" style="background:#888780"></div>Ideas</button>
+</div>
+<div class="main" id="mainContent"></div>
+<button class="fab" onclick="openSheet()">
+<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
 </div>
 
 <div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
-  <div class="sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">¿Qué quieres agregar?</div>
-    <div class="cat-scroll">
-      <button class="cat-chip sel" data-cat="compras" onclick="selectCat(this,'compras')"><div class="cat-cdot" style="background:#1d9e75"></div>Compras</button>
-      <button class="cat-chip" data-cat="eventos" onclick="selectCat(this,'eventos')"><div class="cat-cdot" style="background:#ba7517"></div>Evento</button>
-      <button class="cat-chip" data-cat="peliculas" onclick="selectCat(this,'peliculas')"><div class="cat-cdot" style="background:#7f77dd"></div>Película</button>
-      <button class="cat-chip" data-cat="libros" onclick="selectCat(this,'libros')"><div class="cat-cdot" style="background:#378add"></div>Libro</button>
-      <button class="cat-chip" data-cat="citas" onclick="selectCat(this,'citas')"><div class="cat-cdot" style="background:#E8637A"></div>Cita</button>
-      <button class="cat-chip" data-cat="salud" onclick="selectCat(this,'salud')"><div class="cat-cdot" style="background:#e24b4a"></div>Salud</button>
-      <button class="cat-chip" data-cat="cumples" onclick="selectCat(this,'cumples')"><div class="cat-cdot" style="background:#d85a30"></div>Cumpleaños</button>
-      <button class="cat-chip" data-cat="ejercicio" onclick="selectCat(this,'ejercicio')"><div class="cat-cdot" style="background:#0f6e56"></div>Ejercicio</button>
-      <button class="cat-chip" data-cat="recordatorios" onclick="selectCat(this,'recordatorios')"><div class="cat-cdot" style="background:#534ab7"></div>Recordatorio</button>
-      <button class="cat-chip" data-cat="ideas" onclick="selectCat(this,'ideas')"><div class="cat-cdot" style="background:#888780"></div>Idea</button>
-    </div>
-    <div class="sheet-field">
-      <input class="sheet-input" id="sheetInput" placeholder="Escribe aquí..." type="text">
-    </div>
-    <div class="sheet-field" id="sheetDateWrap" style="display:none">
-      <label id="sheetDateLabel">Fecha y hora</label>
-      <input class="sheet-input" type="datetime-local" id="sheetDate">
-      <input class="sheet-input" type="date" id="sheetDateSimple" style="display:none">
-    </div>
-    <div class="sheet-field" id="sheetLocationWrap" style="display:none">
-      <label>Lugar (opcional)</label>
-      <input class="sheet-input" id="sheetLocation" placeholder="ej. Cinemex Antara, Torre Médica...">
-    </div>
-    <div class="sheet-actions">
-      <button class="btn-cancel" onclick="closeSheet()">Cancelar</button>
-      <button class="btn-save" id="saveBtn" onclick="saveItem()">Guardar</button>
-    </div>
-  </div>
+<div class="sheet">
+<div class="sheet-handle"></div>
+<div class="sheet-title">¿Qué quieres agregar?</div>
+<div class="cat-scroll">
+<button class="cat-chip sel" data-cat="compras" onclick="selectCat(this,'compras')"><div class="cat-cdot" style="background:#1d9e75"></div>Compras</button>
+<button class="cat-chip" data-cat="eventos" onclick="selectCat(this,'eventos')"><div class="cat-cdot" style="background:#ba7517"></div>Evento</button>
+<button class="cat-chip" data-cat="peliculas" onclick="selectCat(this,'peliculas')"><div class="cat-cdot" style="background:#7f77dd"></div>Película</button>
+<button class="cat-chip" data-cat="libros" onclick="selectCat(this,'libros')"><div class="cat-cdot" style="background:#378add"></div>Libro</button>
+<button class="cat-chip" data-cat="citas" onclick="selectCat(this,'citas')"><div class="cat-cdot" style="background:#E8637A"></div>Cita</button>
+<button class="cat-chip" data-cat="salud" onclick="selectCat(this,'salud')"><div class="cat-cdot" style="background:#e24b4a"></div>Salud</button>
+<button class="cat-chip" data-cat="cumples" onclick="selectCat(this,'cumples')"><div class="cat-cdot" style="background:#d85a30"></div>Cumpleaños</button>
+<button class="cat-chip" data-cat="ejercicio" onclick="selectCat(this,'ejercicio')"><div class="cat-cdot" style="background:#0f6e56"></div>Ejercicio</button>
+<button class="cat-chip" data-cat="recordatorios" onclick="selectCat(this,'recordatorios')"><div class="cat-cdot" style="background:#534ab7"></div>Recordatorio</button>
+<button class="cat-chip" data-cat="ideas" onclick="selectCat(this,'ideas')"><div class="cat-cdot" style="background:#888780"></div>Idea</button>
+</div>
+<div class="sheet-field">
+<input class="sheet-input" id="sheetInput" placeholder="Escribe aquí..." type="text">
+</div>
+<div class="sheet-field" id="sheetDateWrap" style="display:none">
+<label id="sheetDateLabel">Fecha y hora</label>
+<input class="sheet-input" type="datetime-local" id="sheetDate">
+<input class="sheet-input" type="date" id="sheetDateSimple" style="display:none">
+</div>
+<div class="sheet-field" id="sheetLocationWrap" style="display:none">
+<label>Lugar (opcional)</label>
+<input class="sheet-input" id="sheetLocation" placeholder="ej. Cinemex Antara, Torre Médica...">
+</div>
+<div class="sheet-actions">
+<button class="btn-cancel" onclick="closeSheet()">Cancelar</button>
+<button class="btn-save" id="saveBtn" onclick="saveItem()">Guardar</button>
+</div>
+</div>
 </div>
 
 <div class="user-overlay" id="userOverlay" onclick="handleUserOverlay(event)">
-  <div class="user-bg"></div>
-  <div class="user-menu">
-    <div class="user-info"><div class="user-email" id="menuEmail">—</div></div>
-    <div class="menu-item danger" onclick="signOut()">Cerrar sesión</div>
-  </div>
+<div class="user-bg"></div>
+<div class="user-menu">
+<div class="user-info"><div class="user-email" id="menuEmail">—</div></div>
+<div class="menu-item danger" onclick="signOut()">Cerrar sesión</div>
+</div>
 </div>
 
 <script>
@@ -260,19 +260,22 @@ const NEED_DATE=['eventos','citas','salud','cumples','recordatorios'];
 const NEED_LOC=['eventos','citas'];
 
 async function init(){
-  // Timeout de seguridad: si algo falla, mostrar auth después de 4 segundos
-  const safetyTimer = setTimeout(() => {
-    if(document.getElementById('loadingScreen').style.display !== 'none') {
+  // Safety timeout: si getSession tarda más de 5s o falla, mostrar login
+  const safetyTimer = setTimeout(()=>{
+    if(document.getElementById('loadingScreen').style.display!=='none'){
+      console.warn('Auth timeout — showing login');
       showAuth();
     }
-  }, 4000);
+  }, 5000);
 
   try {
     const {data:{session}} = await sb.auth.getSession();
     clearTimeout(safetyTimer);
-    if(session){ user=session.user; await showApp(); } else showAuth();
+    if(session){user=session.user;await showApp();}
+    else showAuth();
   } catch(e) {
     clearTimeout(safetyTimer);
+    console.error('Auth error:',e);
     showAuth();
   }
 
@@ -282,7 +285,6 @@ async function init(){
   });
 }
 
-
 async function signInGoogle(){
   const btn=document.getElementById('authBtn');
   btn.textContent='Conectando...';btn.disabled=true;
@@ -290,7 +292,7 @@ async function signInGoogle(){
     provider:'google',
     options:{redirectTo:'https://kami-kohl.vercel.app/'}
   });
-  if(error){alert('Error: '+error.message);btn.innerHTML='Continuar con Google';btn.disabled=false;}
+  if(error){alert('Error: '+error.message);btn.innerHTML='<svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg> Continuar con Google';btn.disabled=false;}
 }
 
 function showAuth(){
@@ -299,15 +301,18 @@ function showAuth(){
   document.getElementById('sentScreen').style.display='none';
   document.getElementById('appShell').classList.remove('visible');
 }
+
 function showSent(email){
   document.getElementById('sentEmail').textContent=email;
   document.getElementById('authScreen').style.display='none';
   document.getElementById('sentScreen').style.display='flex';
 }
+
 function backToAuth(){
   document.getElementById('sentScreen').style.display='none';
   document.getElementById('authScreen').style.display='flex';
 }
+
 async function showApp(){
   document.getElementById('loadingScreen').style.display='none';
   document.getElementById('authScreen').style.display='none';
@@ -327,6 +332,7 @@ async function showApp(){
 }
 
 async function sendMagicLink(){}
+
 async function signOut(){await sb.auth.signOut();toggleUserMenu();}
 
 async function loadItems(){
@@ -337,17 +343,20 @@ async function loadItems(){
   items={};cats.forEach(c=>items[c]=[]);
   (data||[]).forEach(item=>{if(items[item.category])items[item.category].push(item);});
 }
+
 async function addItem(category,text,date,location){
   const{data,error}=await sb.from('items').insert([{user_id:user.id,category,text,date:date||null,location:location||null,done:false}]).select().single();
   if(error){console.error(error);return;}
   if(!items[category])items[category]=[];
   items[category].unshift(data);
 }
+
 async function toggleItemDB(id,category,done){
   await sb.from('items').update({done:!done}).eq('id',id).eq('user_id',user.id);
   const item=(items[category]||[]).find(i=>i.id===id);
   if(item)item.done=!done;
 }
+
 async function deleteItemDB(id,category){
   await sb.from('items').delete().eq('id',id).eq('user_id',user.id);
   if(items[category])items[category]=items[category].filter(i=>i.id!==id);
@@ -383,9 +392,9 @@ function renderHoy(){
   const pc=(items.compras||[]).filter(i=>!i.done);
   const pp=(items.peliculas||[]).filter(i=>!i.done);
   h+=`<div><div class="slabel">resumen rápido</div><div class="quick-grid">
-    <div class="qcard" onclick="switchViewTo('compras')"><div class="qc-head"><span class="qc-label">Compras</span><span class="qc-count">${pc.length}</span></div>${pc.slice(0,3).map(i=>`<div class="qc-row"><div class="minicheck"></div>${i.text}</div>`).join('')||'<div style="font-size:11px;color:var(--text3)">Sin pendientes ✓</div>'}</div>
-    <div class="qcard" onclick="switchViewTo('peliculas')"><div class="qc-head"><span class="qc-label">Películas</span><span class="qc-count">${pp.length}</span></div>${pp.slice(0,3).map(i=>`<div class="qc-row"><div class="minicheck"></div>${i.text}</div>`).join('')||'<div style="font-size:11px;color:var(--text3)">Sin pendientes ✓</div>'}</div>
-  </div></div>`;
+<div class="qcard" onclick="switchViewTo('compras')"><div class="qc-head"><span class="qc-label">Compras</span><span class="qc-count">${pc.length}</span></div>${pc.slice(0,3).map(i=>`<div class="qc-row"><div class="minicheck"></div>${i.text}</div>`).join('')||'<div style="font-size:11px;color:var(--text3)">Sin pendientes ✓</div>'}</div>
+<div class="qcard" onclick="switchViewTo('peliculas')"><div class="qc-head"><span class="qc-label">Películas</span><span class="qc-count">${pp.length}</span></div>${pp.slice(0,3).map(i=>`<div class="qc-row"><div class="minicheck"></div>${i.text}</div>`).join('')||'<div style="font-size:11px;color:var(--text3)">Sin pendientes ✓</div>'}</div>
+</div></div>`;
   if(cumplesTom.length){
     h+=`<div><div class="slabel">mañana — cumpleaños</div>`;
     cumplesTom.forEach(c=>{
@@ -417,7 +426,7 @@ function renderItem(item,c,showPlan){
   const ls=item.location?`<div class="lmeta">📍 ${item.location}</div>`:'';
   const ml=item.location?`<a href="https://maps.google.com/?q=${encodeURIComponent(item.location)}" target="_blank" style="font-size:10px;color:var(--pink);text-decoration:none;margin-right:4px" onclick="event.stopPropagation()">maps</a>`:'';
   const pb=showPlan&&!item.done?`<button class="plan-btn" onclick="makePlan(event,'${item.id}','${c}')">hacer plan</button>`:'';
-  return `<div class="list-item"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''">${item.text}</div>${ds}${ls}</div>${ml}${pb}<button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>`;
+  return `<div class="list-item"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}${ls}</div>${ml}${pb}<button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>`;
 }
 
 async function toggleItem(id,c,done){await toggleItemDB(id,c,done);render();}
@@ -428,12 +437,8 @@ function makePlan(e,id,c){
   e.stopPropagation();
   const item=(items[c]||[]).find(i=>i.id===id);
   if(!item)return;
-  // Show plan options
   const msg=encodeURIComponent('Oye! Te propongo un plan: '+item.text+' — ¿te apuntas? 🎉');
-  const choice=confirm('¿Qué quieres hacer con "'+item.text+'"?
-
-OK = Compartir por WhatsApp
-Cancelar = Crear evento');
+  const choice=confirm('¿Qué quieres hacer con "'+item.text+'"?\n\nOK = Compartir por WhatsApp\nCancelar = Crear evento');
   if(choice){
     window.open('https://wa.me/?text='+msg,'_blank');
   } else {
@@ -451,10 +456,12 @@ function openSheet(c){
   document.getElementById('overlay').classList.add('open');
   setTimeout(()=>document.getElementById('sheetInput').focus(),350);
 }
+
 function closeSheet(){
   document.getElementById('overlay').classList.remove('open');
   ['sheetInput','sheetDate','sheetLocation'].forEach(id=>document.getElementById(id).value='');
 }
+
 function handleOverlayClick(e){if(e.target===document.getElementById('overlay'))closeSheet();}
 
 function selectCat(btn,c){
@@ -471,6 +478,7 @@ function selectCat(btn,c){
     document.getElementById('sheetDateLabel').textContent=isCumple?'Fecha de cumpleaños':'Fecha y hora';
   }
 }
+
 function selectCatByKey(c){const chip=document.querySelector(`.cat-chip[data-cat="${c}"]`);if(chip)selectCat(chip,c);}
 
 async function saveItem(){
@@ -491,6 +499,7 @@ function switchView(v,btn){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');render();
 }
+
 function switchViewTo(v){
   view=v;
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===v));
@@ -499,7 +508,6 @@ function switchViewTo(v){
 
 function toggleUserMenu(){document.getElementById('userOverlay').classList.toggle('open');}
 function handleUserOverlay(e){if(e.target.classList.contains('user-bg'))toggleUserMenu();}
-
 function fmtTime(s){try{return new Date(s).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});}catch{return '';}}
 function fmtDate(s){try{const d=new Date(s.length<=10?s+'T12:00':s);return d.toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'});}catch{return s;}}
 
@@ -508,8 +516,8 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&document.getElementById('overlay').classList.contains('open'))saveItem();
 });
 
-
 init();
 </script>
+
 </body>
 </html>
