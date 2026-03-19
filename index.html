@@ -127,6 +127,32 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .invite-btn.primary:hover{background:var(--pink-hover)}
 .invite-btn.secondary{background:var(--bg2);color:var(--text2);border:0.5px solid var(--border2)}
 .wa-btn.kami{background:var(--pink-light);color:var(--pink);border-color:rgba(232,99,122,0.2)}
+.bts-card{background:linear-gradient(135deg,#f8f6ff 0%,#ede8f7 100%);border:0.5px solid rgba(155,142,196,0.3);border-radius:var(--radius);padding:14px 15px;margin-bottom:8px}
+@media(prefers-color-scheme:dark){.bts-card{background:linear-gradient(135deg,#1e1a2e 0%,#251e3a 100%);border-color:rgba(155,142,196,0.2)}}
+.bts-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.bts-type-badge{font-size:10px;padding:3px 8px;border-radius:20px;background:rgba(155,142,196,0.2);color:#9B8EC4;font-weight:500;flex-shrink:0}
+.bts-title{font-size:14px;font-weight:500;color:var(--text);flex:1}
+.bts-meta{font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.7}
+.bts-note{font-size:12px;color:#9B8EC4;font-style:italic;margin-bottom:10px;padding:8px 10px;background:rgba(155,142,196,0.1);border-radius:8px;border-left:2px solid #9B8EC4}
+.bts-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.bts-btn{font-size:11px;padding:6px 12px;border-radius:6px;border:0.5px solid rgba(155,142,196,0.3);background:rgba(155,142,196,0.1);color:#9B8EC4;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500}
+.bts-btn.primary{background:#9B8EC4;color:white;border-color:#9B8EC4}
+.bts-btn.wa{background:#25d366;color:white;border-color:#25d366}
+.release-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:13px 15px;margin-bottom:8px}
+.release-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.release-icon{font-size:22px;flex-shrink:0}
+.release-type{font-size:10px;color:var(--text3);background:var(--bg2);border-radius:20px;padding:2px 7px;font-weight:500;white-space:nowrap}
+.release-title{font-size:13px;font-weight:500;color:var(--text)}
+.release-meta{font-size:11px;color:var(--text3);margin-bottom:8px;line-height:1.7}
+.release-note{font-size:11px;color:var(--text2);font-style:italic;margin-bottom:8px}
+.release-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.release-btn{font-size:11px;padding:5px 11px;border-radius:6px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif}
+.release-btn.link{background:var(--pink-light);color:var(--pink);border-color:rgba(232,99,122,0.2)}
+.release-btn.wa{background:#25d366;color:white;border-color:#25d366}
+.subtype-scroll{display:flex;gap:6px;padding:8px 18px 4px;overflow-x:auto;scrollbar-width:none}
+.subtype-scroll::-webkit-scrollbar{display:none}
+.subtype-chip{flex-shrink:0;padding:5px 11px;border-radius:20px;font-size:11px;border:0.5px solid var(--border);background:var(--bg2);color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif}
+.subtype-chip.sel{font-weight:500}
 .plan-btn{font-size:10px;padding:3px 8px;border-radius:20px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text3);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;flex-shrink:0}
 .plan-btn:hover{background:var(--pink-light);color:var(--pink)}
 .empty{text-align:center;padding:40px 20px;color:var(--text3)}
@@ -232,6 +258,8 @@ Continuar con Google
 <button class="tab" data-view="ejercicio" onclick="switchView('ejercicio',this)"><div class="tab-dot" style="background:#0f6e56"></div>Ejercicio</button>
 <button class="tab" data-view="recordatorios" onclick="switchView('recordatorios',this)"><div class="tab-dot" style="background:#534ab7"></div>Recordatorios</button>
 <button class="tab" data-view="ideas" onclick="switchView('ideas',this)"><div class="tab-dot" style="background:#888780"></div>Ideas</button>
+<button class="tab" data-view="cultura" onclick="switchView('cultura',this)"><div class="tab-dot" style="background:#C084C0"></div>Cultura</button>
+<button class="tab" data-view="bts" onclick="switchView('bts',this)" style="background:rgba(155,142,196,0.12);border-color:rgba(155,142,196,0.25)"><div class="tab-dot" style="background:#9B8EC4"></div><span style="color:#9B8EC4;font-weight:500">BTS 💜</span></button>
 </div>
 <div class="main" id="mainContent"></div>
 <button class="fab" onclick="openSheet()">
@@ -254,6 +282,8 @@ Continuar con Google
 <button class="cat-chip" data-cat="ejercicio" onclick="selectCat(this,'ejercicio')"><div class="cat-cdot" style="background:#0f6e56"></div>Ejercicio</button>
 <button class="cat-chip" data-cat="recordatorios" onclick="selectCat(this,'recordatorios')"><div class="cat-cdot" style="background:#534ab7"></div>Recordatorio</button>
 <button class="cat-chip" data-cat="ideas" onclick="selectCat(this,'ideas')"><div class="cat-cdot" style="background:#888780"></div>Idea</button>
+<button class="cat-chip" data-cat="cultura" onclick="selectCat(this,'cultura')"><div class="cat-cdot" style="background:#C084C0"></div>Cultura</button>
+<button class="cat-chip" data-cat="bts" onclick="selectCat(this,'bts')" style="background:rgba(155,142,196,0.15);border-color:rgba(155,142,196,0.3);color:#9B8EC4"><div class="cat-cdot" style="background:#9B8EC4"></div>BTS 💜</button>
 </div>
 <div class="sheet-field">
 <input class="sheet-input" id="sheetInput" placeholder="Escribe aquí..." type="text">
@@ -273,6 +303,17 @@ Continuar con Google
 <div class="sheet-field" id="sheetGuestWrap" style="display:none">
 <label>Invitado (opcional)</label>
 <input class="sheet-input" id="sheetGuest" placeholder="Nombre de quien invitas...">
+</div>
+<div id="sheetSubtypeWrap" style="display:none;padding:0 0 4px">
+<div class="subtype-scroll" id="sheetSubtypeScroll"></div>
+</div>
+<div class="sheet-field" id="sheetLinkWrap" style="display:none">
+<label>Link (Spotify, YouTube, etc.)</label>
+<input class="sheet-input" id="sheetLink" placeholder="https://..." type="url">
+</div>
+<div class="sheet-field" id="sheetNoteWrap" style="display:none">
+<label>Nota personal (opcional)</label>
+<input class="sheet-input" id="sheetNote" placeholder="ej. escuchar con Ana, ver en el cine...">
 </div>
 <div class="sheet-actions">
 <button class="btn-cancel" onclick="closeSheet()">Cancelar</button>
@@ -325,12 +366,30 @@ const SURL='https://ufdzyseexhajmzghhsem.supabase.co';
 const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmZHp5c2VleGhham16Z2hoc2VtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Mjk4ODIsImV4cCI6MjA4OTUwNTg4Mn0.56BkKgvZYBwSEAQg4m8X9xReJCekN2AUULdGmFi37Qg';
 const sb=supabase.createClient(SURL,SKEY);
 let user=null,view='hoy',cat='compras',items={};
-const COLORS={compras:'#1d9e75',eventos:'#ba7517',peliculas:'#7f77dd',libros:'#378add',citas:'#E8637A',salud:'#e24b4a',cumples:'#d85a30',ejercicio:'#0f6e56',recordatorios:'#534ab7',ideas:'#888780'};
-const BADGES={compras:'bt',eventos:'ba',peliculas:'bpu',libros:'bb',citas:'bp',salud:'bp',cumples:'bc',ejercicio:'bt',recordatorios:'bpu',ideas:'bgr'};
-const LABELS={compras:'Compras',eventos:'Evento',peliculas:'Película',libros:'Libro',citas:'Cita',salud:'Salud',cumples:'Cumpleaños',ejercicio:'Ejercicio',recordatorios:'Recordatorio',ideas:'Idea'};
-const HINTS={compras:'¿Qué necesitas comprar?',eventos:'Nombre del evento...',peliculas:'Título de la película...',libros:'Título del libro...',citas:'¿Con quién y dónde?',salud:'Medicamento, inyección...',cumples:'Nombre de la persona...',ejercicio:'Rutina, meta, actividad...',recordatorios:'¿Qué quieres recordar?',ideas:'Anota tu idea...'};
-const NEED_DATE=['eventos','citas','salud','cumples','recordatorios','ejercicio'];
-const NEED_LOC=['eventos','citas','ejercicio'];
+const COLORS={compras:'#1d9e75',eventos:'#ba7517',peliculas:'#7f77dd',libros:'#378add',citas:'#E8637A',salud:'#e24b4a',cumples:'#d85a30',ejercicio:'#0f6e56',recordatorios:'#534ab7',ideas:'#888780',cultura:'#C084C0',bts:'#9B8EC4'};
+const BADGES={compras:'bt',eventos:'ba',peliculas:'bpu',libros:'bb',citas:'bp',salud:'bp',cumples:'bc',ejercicio:'bt',recordatorios:'bpu',ideas:'bgr',cultura:'bpu',bts:'bpu'};
+const LABELS={compras:'Compras',eventos:'Evento',peliculas:'Película',libros:'Libro',citas:'Cita',salud:'Salud',cumples:'Cumpleaños',ejercicio:'Ejercicio',recordatorios:'Recordatorio',ideas:'Idea',cultura:'Cultura',bts:'BTS 💜'};
+const HINTS={compras:'¿Qué necesitas comprar?',eventos:'Nombre del evento...',peliculas:'Título de la película...',libros:'Título del libro...',citas:'¿Con quién y dónde?',salud:'Medicamento, inyección...',cumples:'Nombre de la persona...',ejercicio:'Rutina, meta, actividad...',recordatorios:'¿Qué quieres recordar?',ideas:'Anota tu idea...',cultura:'Película, serie, libro, juego...',bts:'Nombre del álbum, single, show...'};
+const NEED_DATE=['eventos','citas','salud','cumples','recordatorios','ejercicio','cultura','bts'];
+const NEED_LOC=['eventos','citas','ejercicio','bts'];
+
+const CULTURA_TYPES=[
+  {key:'musica',label:'🎵 Música'},
+  {key:'serie',label:'🎬 Serie / Película'},
+  {key:'libro',label:'📚 Libro'},
+  {key:'juego',label:'🎮 Videojuego'},
+];
+
+const BTS_TYPES=[
+  {key:'album',label:'💿 Álbum / Mini Álbum'},
+  {key:'single',label:'🎵 Single / Canción'},
+  {key:'app',label:'📱 Weverse / App'},
+  {key:'docu',label:'🎬 Documental / Película'},
+  {key:'show',label:'📺 Show / Reality'},
+  {key:'concierto',label:'🎤 Concierto / Tour'},
+];
+
+let selectedSubtype=null;
 
 // Place data storage: {name, lat, lon}
 let placeData={sheet:null,edit:null};
@@ -557,7 +616,7 @@ async function loadItems(){
   if(!user)return;
   const{data,error}=await sb.from('items').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
   if(error){console.error(error);return;}
-  const cats=['compras','eventos','peliculas','libros','citas','salud','cumples','ejercicio','recordatorios','ideas'];
+  const cats=['compras','eventos','peliculas','libros','citas','salud','cumples','ejercicio','recordatorios','ideas','cultura','bts'];
   items={};cats.forEach(c=>items[c]=[]);
   (data||[]).forEach(item=>{if(items[item.category])items[item.category].push(item);});
 }
@@ -625,14 +684,76 @@ function renderHoy(){
   return h;
 }
 
+function parseRelease(raw){
+  if(!raw||!raw.startsWith('~~'))return{subtype:null,link:null,note:null};
+  const parts=raw.split('~~');
+  return{subtype:parts[1]||null,link:parts[2]||null,note:parts[3]||null};
+}
+
+function getSubtypeLabel(c,key){
+  const types=c==='bts'?BTS_TYPES:CULTURA_TYPES;
+  return(types.find(t=>t.key===key)||{label:key||'Release'}).label;
+}
+
+function renderReleaseCard(item,c){
+  const{subtype,link,note}=parseRelease(item.location);
+  const isBts=c==='bts';
+  const typeLabel=getSubtypeLabel(c,subtype);
+  const dateStr=item.date?`📅 ${fmtDate(item.date)}`:'';
+  const userName=user?.user_metadata?.full_name||user?.email||'';
+  const inviteLink=buildInviteLink(item,c,userName);
+  const waMsg=`${isBts?'💜':'✨'} *${item.text}*${dateStr?' — '+dateStr:''}\n${link?'🔗 '+link:''}\n\n¿Lo guardamos juntos en Kami? 👉 ${inviteLink}`.trim();
+  if(isBts){
+    const emoji=typeLabel.split(' ')[0];
+    const typeName=typeLabel.split(' ').slice(1).join(' ');
+    return `<div class="bts-card">
+      <div class="bts-header">
+        <div style="font-size:20px">${emoji}</div>
+        <div class="bts-title">${item.text}</div>
+        <div class="bts-type-badge">${typeName}</div>
+        <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')">✏️</button>
+        <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
+      </div>
+      ${dateStr?`<div class="bts-meta">${dateStr}</div>`:''}
+      ${note?`<div class="bts-note">💜 ${note}</div>`:''}
+      <div class="bts-actions">
+        ${link?`<button class="bts-btn primary" onclick="window.open('${link}','_blank')">🎧 Abrir link</button>`:''}
+        <button class="bts-btn" onclick="copyInvite('${encodeURIComponent(inviteLink)}')">🔗 Invitar</button>
+        <button class="bts-btn wa" onclick="sendWA('${encodeURIComponent(waMsg)}')">WhatsApp</button>
+      </div>
+    </div>`;
+  }
+  const icons={musica:'🎵',serie:'🎬',libro:'📚',juego:'🎮'};
+  const icon=icons[subtype]||'✨';
+  return `<div class="release-card">
+    <div class="release-header">
+      <div class="release-icon">${icon}</div>
+      <div style="flex:1"><div class="release-title">${item.text}</div><div class="release-type">${typeLabel}</div></div>
+      <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')">✏️</button>
+      <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
+    </div>
+    ${dateStr?`<div class="release-meta">${dateStr}</div>`:''}
+    ${note?`<div class="release-note">💬 ${note}</div>`:''}
+    <div class="release-actions">
+      ${link?`<button class="release-btn link" onclick="window.open('${link}','_blank')">🔗 Abrir</button>`:''}
+      <button class="release-btn" onclick="copyInvite('${encodeURIComponent(inviteLink)}')">📤 Invitar a Kami</button>
+      <button class="release-btn wa" onclick="sendWA('${encodeURIComponent(waMsg)}')">WhatsApp 💚</button>
+    </div>
+  </div>`;
+}
+
 function renderList(c){
   const arr=items[c]||[];
+  const isRelease=c==='cultura'||c==='bts';
   const pending=arr.filter(i=>!i.done);
   const done=arr.filter(i=>i.done);
   const showPlan=c==='peliculas'||c==='libros';
   let h=`<div>`;
-  if(!arr.length)h+=`<div class="empty"><div style="font-size:28px">✦</div><p>Nada aquí todavía.<br>Toca + para agregar.</p></div>`;
-  else{
+  if(!arr.length)h+=`<div class="empty"><div style="font-size:28px">${c==='bts'?'💜':'✦'}</div><p>Nada aquí todavía.<br>Toca + para agregar.</p></div>`;
+  else if(isRelease){
+    if(pending.length)h+=pending.map(i=>renderReleaseCard(i,c)).join('');
+    if(done.length)h+=`<div><div class="slabel">visto / escuchado ✓</div>${done.map(i=>renderReleaseCard(i,c)).join('')}</div>`;
+  } else {
     if(pending.length)h+=`<div><div class="slabel">pendientes</div>${pending.map(i=>renderItem(i,c,showPlan)).join('')}</div>`;
     if(done.length)h+=`<div><div class="slabel">completados</div>${done.map(i=>renderItem(i,c,false)).join('')}</div>`;
   }
@@ -775,7 +896,8 @@ function openSheet(c){
 
 function closeSheet(){
   document.getElementById('overlay').classList.remove('open');
-  ['sheetInput','sheetDate','sheetLocation','sheetGuest'].forEach(id=>document.getElementById(id).value='');
+  ['sheetInput','sheetDate','sheetLocation','sheetGuest','sheetLink','sheetNote'].forEach(id=>document.getElementById(id).value='');
+  placeData.sheet=null;selectedSubtype=null;
 }
 
 function handleOverlayClick(e){if(e.target===document.getElementById('overlay'))closeSheet();}
@@ -787,13 +909,34 @@ function selectCat(btn,c){
   document.getElementById('sheetDateWrap').style.display=needDate?'block':'none';
   document.getElementById('sheetLocationWrap').style.display=NEED_LOC.includes(c)?'block':'none';
   document.getElementById('sheetGuestWrap').style.display=c==='ejercicio'?'block':'none';
+  const isRelease=c==='cultura'||c==='bts';
+  document.getElementById('sheetLinkWrap').style.display=isRelease?'block':'none';
+  document.getElementById('sheetNoteWrap').style.display=isRelease?'block':'none';
+  // Subtypes
+  const stWrap=document.getElementById('sheetSubtypeWrap');
+  const stScroll=document.getElementById('sheetSubtypeScroll');
+  if(isRelease){
+    const types=c==='bts'?BTS_TYPES:CULTURA_TYPES;
+    selectedSubtype=types[0].key;
+    stScroll.innerHTML=types.map((t,i)=>`<button class="subtype-chip${i===0?' sel':''}" onclick="selectSubtype(this,'${t.key}')" style="${c==='bts'?'color:#9B8EC4;border-color:rgba(155,142,196,0.3)':''}">${t.label}</button>`).join('');
+    stWrap.style.display='block';
+  } else {
+    stWrap.style.display='none';
+    selectedSubtype=null;
+  }
   document.getElementById('sheetInput').placeholder=HINTS[c]||'Escribe aquí...';
   if(needDate){
     const isCumple=c==='cumples';
     document.getElementById('sheetDate').style.display=isCumple?'none':'block';
     document.getElementById('sheetDateSimple').style.display=isCumple?'block':'none';
-    document.getElementById('sheetDateLabel').textContent=isCumple?'Fecha de cumpleaños':'Fecha y hora';
+    document.getElementById('sheetDateLabel').textContent=isCumple?'Fecha de cumpleaños':'Fecha de lanzamiento / evento';
   }
+}
+
+function selectSubtype(btn,key){
+  document.querySelectorAll('#sheetSubtypeScroll .subtype-chip').forEach(x=>x.classList.remove('sel'));
+  btn.classList.add('sel');
+  selectedSubtype=key;
 }
 
 function selectCatByKey(c){const chip=document.querySelector(`.cat-chip[data-cat="${c}"]`);if(chip)selectCat(chip,c);}
@@ -807,6 +950,12 @@ async function saveItem(){
   if(cat==='ejercicio'){
     const guest=document.getElementById('sheetGuest').value.trim();
     if(guest) location=(location?location:'')+'||'+guest;
+  }
+  const isRelease=cat==='cultura'||cat==='bts';
+  if(isRelease){
+    const link=document.getElementById('sheetLink').value.trim()||'';
+    const note=document.getElementById('sheetNote').value.trim()||'';
+    location=`~~${selectedSubtype||''}~~${link}~~${note}`;
   }
   const btn=document.getElementById('saveBtn');
   btn.textContent='Guardando...';btn.disabled=true;
