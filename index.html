@@ -1418,18 +1418,35 @@ async function saveCumpleEvent(){
   const locName=document.getElementById('cumpleEventLocation').value.trim();
   const mapsLink=document.getElementById('cumpleMapsLink')?.value.trim()||'';
   const webLink=document.getElementById('cumpleWebLink')?.value.trim()||'';
+
+  // Build location object — even if only links are provided
   let locObj=placeData.cumple||null;
-  if(!locObj&&locName)locObj={name:locName,lat:null,lon:null};
-  if(locObj&&mapsLink)locObj.mapsLink=mapsLink;
-  if(locObj&&webLink)locObj.website=webLink;
-  let location=locObj?JSON.stringify(locObj):null;
-  if(cumpleEventForId)location=(location?location:'')+'@@'+cumpleEventForId;
+  if(!locObj&&(locName||mapsLink||webLink)){
+    locObj={name:locName||'',lat:null,lon:null};
+  }
+  if(locObj){
+    if(mapsLink)locObj.mapsLink=mapsLink;
+    if(webLink)locObj.website=webLink;
+  }
+  // Only store location if there's something meaningful
+  let location=(locObj&&(locObj.name||locObj.mapsLink))?JSON.stringify(locObj):null;
+  if(cumpleEventForId)location=(location||'')+'@@'+cumpleEventForId;
+
   const btn=document.getElementById('cumpleEventBtn');
   btn.textContent='Guardando...';btn.disabled=true;
-  await addItem('eventos',text,date,location);
-  btn.textContent='Guardar';btn.disabled=false;
-  closeCumpleEvent();
-  render();
+  try{
+    const result=await addItem('eventos',text,date,location);
+    if(result){
+      closeCumpleEvent();
+      render();
+    } else {
+      btn.textContent='Guardar';btn.disabled=false;
+    }
+  }catch(err){
+    console.error('saveCumpleEvent error:',err);
+    btn.textContent='Guardar';btn.disabled=false;
+    alert('Error al guardar. Intenta de nuevo.');
+  }
 }
 
 function copyInvite(encodedLink){
@@ -1496,12 +1513,18 @@ async function saveEdit(){
   }
   const btn=document.getElementById('editBtn');
   btn.textContent='Guardando...';btn.disabled=true;
-  await sb.from('items').update({text,date,location}).eq('id',editingId).eq('user_id',user.id);
-  const item=(items[c]||[]).find(i=>i.id===editingId);
-  if(item){item.text=text;item.date=date;item.location=location;}
-  placeData.edit=null;
+  try{
+    const{error}=await sb.from('items').update({text,date,location}).eq('id',editingId).eq('user_id',user.id);
+    if(error)throw error;
+    const item=(items[c]||[]).find(i=>i.id===editingId);
+    if(item){item.text=text;item.date=date;item.location=location;}
+    placeData.edit=null;
+    closeEdit();render();
+  }catch(err){
+    console.error('saveEdit error:',err);
+    alert('Error al guardar: '+(err.message||'intenta de nuevo'));
+  }
   btn.textContent='Guardar';btn.disabled=false;
-  closeEdit();render();
 }
 function sendWA(msg){window.open(`https://wa.me/?text=${msg}`,'_blank');}
 
@@ -1596,10 +1619,18 @@ async function saveItem(){
   }
   const btn=document.getElementById('saveBtn');
   btn.textContent='Guardando...';btn.disabled=true;
-  await addItem(cat,text,date,location);
-  placeData.sheet=null;
+  try{
+    const result=await addItem(cat,text,date,location);
+    if(result){
+      placeData.sheet=null;
+      closeSheet();
+      switchViewTo(cat);
+    }
+  }catch(err){
+    console.error('saveItem error:',err);
+    alert('Error al guardar: '+(err.message||'intenta de nuevo'));
+  }
   btn.textContent='Guardar';btn.disabled=false;
-  closeSheet();switchViewTo(cat);
 }
 
 function switchView(v,btn){
