@@ -153,6 +153,24 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .subtype-scroll::-webkit-scrollbar{display:none}
 .subtype-chip{flex-shrink:0;padding:5px 11px;border-radius:20px;font-size:11px;border:0.5px solid var(--border);background:var(--bg2);color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif}
 .subtype-chip.sel{font-weight:500}
+.tabs-screen{position:fixed;inset:0;background:var(--bg);z-index:400;display:none;flex-direction:column}
+.tabs-screen.open{display:flex}
+.tabs-screen-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:0.5px solid var(--border);background:var(--bg3)}
+.tabs-screen-title{font-size:15px;font-weight:500}
+.tabs-screen-close{background:none;border:none;font-size:22px;color:var(--text3);cursor:pointer;line-height:1;padding:4px}
+.tabs-list{flex:1;overflow-y:auto;padding:12px}
+.tab-toggle-item{display:flex;align-items:center;gap:12px;padding:13px 14px;background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:8px}
+.tab-toggle-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.tab-toggle-label{flex:1;font-size:14px;font-weight:500}
+.toggle-switch{width:40px;height:22px;border-radius:11px;border:none;cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0}
+.toggle-switch.on{background:var(--pink)}
+.toggle-switch.off{background:var(--border2)}
+.toggle-switch::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:white;top:3px;transition:left 0.2s}
+.toggle-switch.on::after{left:21px}
+.toggle-switch.off::after{left:3px}
+.daily-btn{display:flex;align-items:center;gap:8px;padding:11px 14px;background:#25d366;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;width:100%;margin-bottom:10px}
+.cal-btn{font-size:11px;padding:5px 11px;border-radius:6px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif}
+.cal-btn:hover{background:var(--pink-light);color:var(--pink)}
 .plan-btn{font-size:10px;padding:3px 8px;border-radius:20px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text3);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;flex-shrink:0}
 .plan-btn:hover{background:var(--pink-light);color:var(--pink)}
 .empty{text-align:center;padding:40px 20px;color:var(--text3)}
@@ -300,7 +318,8 @@ Continuar con Google
 <label>Invitado (opcional)</label>
 <input class="sheet-input" id="sheetGuest" placeholder="Nombre de quien invitas...">
 </div>
-<div id="sheetSubtypeWrap" style="display:none;padding:0 0 4px">
+<div id="sheetSubtypeWrap" style="display:none">
+<div class="sheet-field" style="padding-bottom:4px"><label id="sheetSubtypeLabel">Tipo</label></div>
 <div class="subtype-scroll" id="sheetSubtypeScroll"></div>
 </div>
 <div class="sheet-field" id="sheetLinkWrap" style="display:none">
@@ -322,8 +341,17 @@ Continuar con Google
 <div class="user-bg"></div>
 <div class="user-menu">
 <div class="user-info"><div class="user-email" id="menuEmail">—</div></div>
+<div class="menu-item" onclick="openTabsConfig();toggleUserMenu()">⚙️ Personalizar tabs</div>
 <div class="menu-item danger" onclick="signOut()">Cerrar sesión</div>
 </div>
+</div>
+
+<div class="tabs-screen" id="tabsScreen">
+<div class="tabs-screen-header">
+<span class="tabs-screen-title">Mis tabs</span>
+<button class="tabs-screen-close" onclick="closeTabsConfig()">✕</button>
+</div>
+<div class="tabs-list" id="tabsList"></div>
 </div>
 
 <div class="overlay" id="editOverlay" onclick="handleEditOverlayClick(event)">
@@ -386,6 +414,124 @@ const BTS_TYPES=[
 ];
 
 let selectedSubtype=null;
+
+// All available tabs definition
+const ALL_TABS=[
+  {key:'hoy',label:'Hoy',color:'var(--pink)',always:true},
+  {key:'compras',label:'Compras',color:'#1d9e75'},
+  {key:'eventos',label:'Eventos',color:'#ba7517'},
+  {key:'citas',label:'Citas',color:'#E8637A'},
+  {key:'salud',label:'Salud',color:'#e24b4a'},
+  {key:'cumples',label:'Cumpleaños',color:'#d85a30'},
+  {key:'ejercicio',label:'Ejercicio',color:'#0f6e56'},
+  {key:'recordatorios',label:'Recordatorios',color:'#534ab7'},
+  {key:'ideas',label:'Ideas',color:'#888780'},
+  {key:'cultura',label:'Cultura',color:'#C084C0'},
+  {key:'bts',label:'BTS 💜',color:'#9B8EC4'},
+];
+
+// Load hidden tabs from localStorage
+let hiddenTabs=new Set(JSON.parse(localStorage.getItem('kamiHiddenTabs')||'[]'));
+
+function saveHiddenTabs(){localStorage.setItem('kamiHiddenTabs',JSON.stringify([...hiddenTabs]));}
+
+function renderNavTabs(){
+  const nav=document.querySelector('.nav-tabs');
+  nav.innerHTML=ALL_TABS.filter(t=>!hiddenTabs.has(t.key)).map((t,i)=>{
+    const isBts=t.key==='bts';
+    const activeClass=view===t.key?'active':'';
+    return `<button class="tab ${activeClass}" data-view="${t.key}" onclick="switchView('${t.key}',this)" ${isBts?'style="background:rgba(155,142,196,0.12);border-color:rgba(155,142,196,0.25)"':''}>
+      <div class="tab-dot" style="background:${t.color}"></div>
+      <span ${isBts?'style="color:#9B8EC4;font-weight:500"':''}>${t.label}</span>
+    </button>`;
+  }).join('');
+}
+
+function openTabsConfig(){
+  const list=document.getElementById('tabsList');
+  list.innerHTML=ALL_TABS.map(t=>`
+    <div class="tab-toggle-item">
+      <div class="tab-toggle-dot" style="background:${t.color}"></div>
+      <div class="tab-toggle-label">${t.label}</div>
+      ${t.always?'<span style="font-size:11px;color:var(--text3)">Siempre visible</span>':`
+      <button class="toggle-switch ${hiddenTabs.has(t.key)?'off':'on'}" onclick="toggleTab('${t.key}',this)"></button>`}
+    </div>`).join('');
+  document.getElementById('tabsScreen').classList.add('open');
+}
+
+function closeTabsConfig(){
+  document.getElementById('tabsScreen').classList.remove('open');
+  renderNavTabs();
+}
+
+function toggleTab(key,btn){
+  if(hiddenTabs.has(key)){hiddenTabs.delete(key);btn.className='toggle-switch on';}
+  else{hiddenTabs.add(key);btn.className='toggle-switch off';}
+  saveHiddenTabs();
+  // If current view is now hidden, go to hoy
+  if(hiddenTabs.has(view)){view='hoy';}
+}
+
+// Calendar .ics generation
+function addToCalendar(item,c){
+  if(!item.date){alert('Este item no tiene fecha.');return;}
+  const d=parseLocalDate(item.date);
+  const pad=n=>String(n).padStart(2,'0');
+  const fmt=d=>`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+  const start=fmt(d);
+  const end=fmt(new Date(d.getTime()+60*60*1000)); // +1 hora
+  const{locName}=parseLocationFull(item.location?item.location.split('||')[0]:null);
+  const{note}=parseRelease(item.location||'');
+  const desc=note||LABELS[c]||'';
+  const ics=`BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Kami//EN\nBEGIN:VEVENT\nUID:${item.id}@kami\nDTSTART:${start}\nDTEND:${end}\nSUMMARY:${item.text}\nDESCRIPTION:${desc}\n${locName?'LOCATION:'+locName+'\n':''}BEGIN:VALARM\nTRIGGER:-PT30M\nACTION:DISPLAY\nDESCRIPTION:Recordatorio\nEND:VALARM\nEND:VEVENT\nEND:VCALENDAR`;
+  const blob=new Blob([ics],{type:'text/calendar'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`${item.text.replace(/\s+/g,'_')}.ics`;
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+// Daily summary for WhatsApp
+function sendDailySummary(){
+  const today=new Date();
+  const ts=today.toISOString().split('T')[0];
+  const days=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const months=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const dayName=days[today.getDay()];
+  const dateLabel=`${dayName} ${today.getDate()} ${months[today.getMonth()]}`;
+
+  let todayItems=[];
+  Object.entries(items).forEach(([c,arr])=>{
+    arr.forEach(item=>{if(item.date&&item.date.startsWith(ts)&&!item.done)todayItems.push({...item,cat:c});});
+  });
+
+  let msg=`☀️ *Mi día — ${dateLabel}*\n`;
+
+  if(!todayItems.length){
+    msg+='\nSin eventos programados hoy ✨';
+  } else {
+    todayItems.sort((a,b)=>a.date>b.date?1:-1).forEach(item=>{
+      const c=item.cat;
+      const emoji={eventos:'📅',citas:'🤝',ejercicio:'🏃',salud:'💊',recordatorios:'🔔',bts:'💜',cultura:'✨',cumples:'🎂'}[c]||'•';
+      const t=item.date&&item.date.includes('T')?fmtTime(item.date):'';
+      const{locName}=parseLocationFull(item.location?item.location.split('||')[0]:null);
+      const{note}=parseRelease(item.location||'');
+      const parts=[t,locName,note].filter(Boolean).join(' · ');
+      msg+=`\n${emoji} *${item.text}*${parts?' — '+parts:''}`;
+    });
+  }
+
+  // Pendientes rápidos
+  const compras=(items.compras||[]).filter(i=>!i.done);
+  if(compras.length){
+    msg+=`\n\n🛒 *Pendiente comprar:*`;
+    compras.slice(0,5).forEach(i=>msg+=`\n  • ${i.text}`);
+  }
+
+  msg+='\n\n_vía kami 🌸_';
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
+}
 
 // Place data storage: {name, lat, lon}
 let placeData={sheet:null,edit:null};
@@ -601,7 +747,7 @@ async function showApp(){
   const av=document.getElementById('userAvatar');
   if(photo){av.innerHTML='<img src="'+photo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}
   else{av.textContent=name.charAt(0).toUpperCase();}
-  await loadItems();render();
+  await loadItems();renderNavTabs();render();
 }
 
 async function sendMagicLink(){}
@@ -649,7 +795,9 @@ function renderHoy(){
     arr.forEach(item=>{if(item.date&&item.date.startsWith(ts)&&!item.done)todayItems.push({...item,cat:c});});
   });
   const cumplesTom=(items.cumples||[]).filter(c=>c.date&&c.date.startsWith(toms));
-  let h=`<div><div class="today-banner"><div><h2>Hola 👋</h2><p>${todayItems.length} recordatorio${todayItems.length!==1?'s':''} para hoy</p></div><div class="today-num">${todayItems.length||'0'}</div></div></div>`;
+  let h=`<div><div class="today-banner"><div><h2>Hola 👋</h2><p>${todayItems.length} recordatorio${todayItems.length!==1?'s':''} para hoy</p></div><div class="today-num">${todayItems.length||'0'}</div></div>
+  <button class="daily-btn" onclick="sendDailySummary()">📋 Enviarme mi día por WhatsApp</button>
+  </div>`;
   if(todayItems.length){
     h+=`<div><div class="slabel">para hoy</div>`;
     todayItems.forEach(item=>{
@@ -745,6 +893,7 @@ function renderReleaseCard(item,c){
       ${note?`<div class="bts-note">💜 ${note}</div>`:''}
       <div class="bts-actions">
         ${link?`<button class="bts-btn primary" onclick="window.open('${link}','_blank')">🎧 Abrir link</button>`:''}
+        ${item.date?`<button class="bts-btn" onclick="addToCalendar(items['${c}'].find(i=>i.id==='${item.id}'),'${c}')">📅 Calendario</button>`:''}
         <button class="bts-btn" onclick="copyInvite('${encodeURIComponent(inviteLink)}')">🔗 Invitar</button>
         <button class="bts-btn wa" onclick="sendWA('${encodeURIComponent(waMsg)}')">WhatsApp</button>
       </div>
@@ -763,7 +912,8 @@ function renderReleaseCard(item,c){
     ${note?`<div class="release-note">💬 ${note}</div>`:''}
     <div class="release-actions">
       ${link?`<button class="release-btn link" onclick="window.open('${link}','_blank')">🔗 Abrir</button>`:''}
-      <button class="release-btn" onclick="copyInvite('${encodeURIComponent(inviteLink)}')">📤 Invitar a Kami</button>
+      ${item.date?`<button class="release-btn" onclick="addToCalendar(items['${c}'].find(i=>i.id==='${item.id}'),'${c}')">📅 Cal</button>`:''}
+      <button class="release-btn" onclick="copyInvite('${encodeURIComponent(inviteLink)}')">📤 Invitar</button>
       <button class="release-btn wa" onclick="sendWA('${encodeURIComponent(waMsg)}')">WhatsApp 💚</button>
     </div>
   </div>`;
@@ -822,7 +972,8 @@ function renderItem(item,c,showPlan){
   const mapLink=mapsUrl(lat,lon,locName);
   const ml=mapLink?`<a href="${mapLink}" target="_blank" style="font-size:10px;color:var(--pink);text-decoration:none;margin-right:4px" onclick="event.stopPropagation()">maps</a>`:'';
   const pb=showPlan&&!item.done?`<button class="plan-btn" onclick="makePlan(event,'${item.id}','${c}')">hacer plan</button>`:'';
-  return `<div class="list-item"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}${ls}</div>${ml}${pb}<button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button><button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>`;
+  const calBtn=NEED_DATE.includes(c)&&item.date?`<button class="cal-btn" onclick="addToCalendar(items['${c}'].find(i=>i.id==='${item.id}'),'${c}')" title="Agregar al calendario">📅</button>`:'';
+  return `<div class="list-item"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}${ls}</div>${ml}${pb}${calBtn}<button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button><button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>`;
 }
 
 function copyInvite(encodedLink){
@@ -995,7 +1146,8 @@ async function saveItem(){
 function switchView(v,btn){
   view=v;
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');render();
+  if(btn)btn.classList.add('active');
+  render();
 }
 
 function switchViewTo(v){
@@ -1006,8 +1158,16 @@ function switchViewTo(v){
 
 function toggleUserMenu(){document.getElementById('userOverlay').classList.toggle('open');}
 function handleUserOverlay(e){if(e.target.classList.contains('user-bg'))toggleUserMenu();}
-function fmtTime(s){try{return new Date(s).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});}catch{return '';}}
-function fmtDate(s){try{const d=new Date(s.length<=10?s+'T12:00':s);return d.toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'});}catch{return s;}}
+function parseLocalDate(s){
+  if(!s)return null;
+  // Treat stored datetime as local time, not UTC
+  if(s.length<=10)return new Date(s+'T12:00:00');
+  // "2026-03-21T22:00" — no Z, so JS parses as local already
+  // but if it has Z or +00:00 it would shift; strip timezone offset
+  return new Date(s.replace('Z','').replace(/[+-]\d{2}:\d{2}$/,''));
+}
+function fmtTime(s){try{return parseLocalDate(s).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});}catch{return '';}}
+function fmtDate(s){try{return parseLocalDate(s).toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'});}catch{return s;}}
 
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){closeSheet();closeEdit();document.getElementById('userOverlay').classList.remove('open');}
