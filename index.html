@@ -310,9 +310,16 @@ Continuar con Google
 <div class="sheet-field" id="sheetLocationWrap" style="display:none">
 <label>Lugar (opcional)</label>
 <div class="place-wrap">
-<input class="sheet-input" id="sheetLocation" placeholder="Busca un lugar..." type="text" autocomplete="off" oninput="searchPlace(this,'sheetPlaceSug')" onblur="hideSug('sheetPlaceSug')">
+<input class="sheet-input" id="sheetLocation" placeholder="Busca o escribe un lugar..." type="text" autocomplete="off" oninput="searchPlace(this,'sheetPlaceSug')" onblur="hideSug('sheetPlaceSug')">
 <div class="place-suggestions" id="sheetPlaceSug" style="display:none"></div>
 </div>
+<div style="font-size:10px;color:var(--text3);margin-top:4px;padding:0 2px">Si no aparece sugerencia, escribe el nombre directo ✍️</div>
+</div>
+<div class="sheet-field" id="sheetCumpleWrap" style="display:none">
+<label>Vincular a cumpleaños (opcional)</label>
+<select class="sheet-input" id="sheetCumple" style="cursor:pointer">
+<option value="">— Sin vincular —</option>
+</select>
 </div>
 <div class="sheet-field" id="sheetGuestWrap" style="display:none">
 <label>Invitado (opcional)</label>
@@ -370,9 +377,10 @@ Continuar con Google
 <div class="sheet-field" id="editLocationWrap" style="display:none">
 <label>Lugar (opcional)</label>
 <div class="place-wrap">
-<input class="sheet-input" id="editLocation" placeholder="Busca un lugar..." type="text" autocomplete="off" oninput="searchPlace(this,'editPlaceSug')" onblur="hideSug('editPlaceSug')">
+<input class="sheet-input" id="editLocation" placeholder="Busca o escribe un lugar..." type="text" autocomplete="off" oninput="searchPlace(this,'editPlaceSug')" onblur="hideSug('editPlaceSug')">
 <div class="place-suggestions" id="editPlaceSug" style="display:none"></div>
 </div>
+<div style="font-size:10px;color:var(--text3);margin-top:4px;padding:0 2px">Si no aparece sugerencia, escribe el nombre directo ✍️</div>
 </div>
 <div class="sheet-field" id="editGuestWrap" style="display:none">
 <label>Invitado (opcional)</label>
@@ -790,11 +798,22 @@ function renderHoy(){
   const ts=today.toISOString().split('T')[0];
   const tom=new Date(today);tom.setDate(tom.getDate()+1);
   const toms=tom.toISOString().split('T')[0];
+  // For birthdays compare only MM-DD (recurring every year)
+  const tomsMMDD=toms.slice(5); // "MM-DD"
+  const tsMMDD=ts.slice(5);
   let todayItems=[];
   Object.entries(items).forEach(([c,arr])=>{
-    arr.forEach(item=>{if(item.date&&item.date.startsWith(ts)&&!item.done)todayItems.push({...item,cat:c});});
+    arr.forEach(item=>{
+      if(!item.date||item.done)return;
+      // Birthdays match by MM-DD only
+      if(c==='cumples'){
+        if(item.date.slice(5)===tsMMDD)todayItems.push({...item,cat:c});
+      } else {
+        if(item.date.startsWith(ts))todayItems.push({...item,cat:c});
+      }
+    });
   });
-  const cumplesTom=(items.cumples||[]).filter(c=>c.date&&c.date.startsWith(toms));
+  const cumplesTom=(items.cumples||[]).filter(c=>c.date&&c.date.slice(5)===tomsMMDD);
   let h=`<div><div class="today-banner"><div><h2>Hola 👋</h2><p>${todayItems.length} recordatorio${todayItems.length!==1?'s':''} para hoy</p></div><div class="today-num">${todayItems.length||'0'}</div></div>
   <button class="daily-btn" onclick="sendDailySummary()">📋 Enviarme mi día por WhatsApp</button>
   </div>`;
@@ -839,9 +858,25 @@ function renderHoy(){
   if(cumplesTom.length){
     h+=`<div><div class="slabel">mañana — cumpleaños</div>`;
     cumplesTom.forEach(c=>{
-      const first=c.text.split(' ')[0];
-      const msg=`Hola ${first}!! Feliz cumpleaños, espero que la pases increíble hoy 🥳🎂✨`;
-      h+=`<div class="wa-card"><div class="wa-head"><div class="wa-icon">🎂</div><div><div class="wa-name">Cumple de ${c.text}</div><div class="wa-sub">draft listo</div></div></div><div class="wa-bubble">${msg}</div><div class="wa-actions"><button class="wa-btn send" onclick="sendWA('${encodeURIComponent(msg)}')">Enviar por WhatsApp</button></div></div>`;
+      const firstName=c.text.split(' ')[0];
+      const msg=`Hola ${firstName}!! Feliz cumpleaños, espero que la pases increíble hoy 🥳🎂✨`;
+      // Find linked events for this person
+      const linkedEvents=[];
+      ['eventos','citas'].forEach(cat=>{
+        (items[cat]||[]).forEach(ev=>{
+          const{cumpleId}=parseItemText(ev.text);
+          if(cumpleId===c.id)linkedEvents.push({...ev,cat});
+        });
+      });
+      const linkedHtml=linkedEvents.length?`<div style="margin:8px 0 6px;padding:8px 10px;background:rgba(216,90,48,0.07);border-radius:8px;border-left:2px solid #d85a30">
+        ${linkedEvents.map(ev=>{
+          const{text}=parseItemText(ev.text);
+          const t=ev.date&&ev.date.includes('T')?fmtTime(ev.date):'';
+          const{locName}=parseLocationFull(ev.location?ev.location.split('||')[0]:null);
+          return `<div style="font-size:11px;color:var(--text2);margin-bottom:3px">🎉 <b>${text}</b>${t?' — '+t:''}${locName?' · '+locName:''}</div>`;
+        }).join('')}
+      </div>`:'';
+      h+=`<div class="wa-card"><div class="wa-head"><div class="wa-icon">🎂</div><div><div class="wa-name">Cumple de ${c.text}</div><div class="wa-sub">draft listo</div></div></div>${linkedHtml}<div class="wa-bubble">${msg}</div><div class="wa-actions"><button class="wa-btn send" onclick="sendWA('${encodeURIComponent(msg)}')">Enviar por WhatsApp</button></div></div>`;
     });
     h+=`</div>`;
   }
@@ -919,18 +954,73 @@ function renderReleaseCard(item,c){
   </div>`;
 }
 
+function nextBirthdayDate(dateStr){
+  if(!dateStr)return null;
+  const today=new Date();
+  const mmdd=dateStr.slice(5); // MM-DD
+  const thisYear=new Date(`${today.getFullYear()}-${mmdd}`);
+  if(thisYear>=today)return thisYear;
+  return new Date(`${today.getFullYear()+1}-${mmdd}`);
+}
+
+function daysUntil(d){
+  const today=new Date();today.setHours(0,0,0,0);
+  const diff=d-today;
+  return Math.round(diff/(1000*60*60*24));
+}
+
 function renderList(c){
   const arr=items[c]||[];
   const isRelease=c==='cultura'||c==='bts';
-  const pending=arr.filter(i=>!i.done);
-  const done=arr.filter(i=>i.done);
   const showPlan=c==='peliculas'||c==='libros';
   let h=`<div>`;
   if(!arr.length)h+=`<div class="empty"><div style="font-size:28px">${c==='bts'?'💜':'✦'}</div><p>Nada aquí todavía.<br>Toca + para agregar.</p></div>`;
-  else if(isRelease){
+  else if(c==='cumples'){
+    // Sort by next birthday
+    const sorted=[...arr].sort((a,b)=>{
+      const da=nextBirthdayDate(a.date);
+      const db=nextBirthdayDate(b.date);
+      if(!da&&!db)return 0;
+      if(!da)return 1;
+      if(!db)return -1;
+      return da-db;
+    });
+    h+=sorted.map(item=>{
+      const next=nextBirthdayDate(item.date);
+      const days=next?daysUntil(next):null;
+      const daysLabel=days===0?'🎂 Hoy!':days===1?'🎂 Mañana!':`en ${days} días`;
+      const mmdd=item.date?item.date.slice(5):'';
+      const[mm,dd]=mmdd.split('-');
+      const months=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      const dateLabel=mm&&dd?`${parseInt(dd)} ${months[parseInt(mm)-1]}`:'';
+      // Linked events
+      const linkedEvents=[];
+      ['eventos','citas'].forEach(cat=>{
+        (items[cat]||[]).forEach(ev=>{
+          const{cumpleId}=parseItemText(ev.text);
+          if(cumpleId===item.id)linkedEvents.push({...ev,cat});
+        });
+      });
+      const linkedHtml=linkedEvents.length?`<div style="font-size:10px;color:#ba7517;margin-top:3px">${linkedEvents.map(ev=>{const{text}=parseItemText(ev.text);return`🎉 ${text}`;}).join(' · ')}</div>`:'';
+      return `<div class="list-item">
+        <div style="width:36px;height:36px;border-radius:50%;background:#faece7;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🎂</div>
+        <div style="flex:1;min-width:0">
+          <div class="ltext">${item.text}</div>
+          <div class="lmeta">${dateLabel}${days!==null?' · '+daysLabel:''}</div>
+          ${linkedHtml}
+        </div>
+        <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')">✏️</button>
+        <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
+      </div>`;
+    }).join('');
+  } else if(isRelease){
+    const pending=arr.filter(i=>!i.done);
+    const done=arr.filter(i=>i.done);
     if(pending.length)h+=pending.map(i=>renderReleaseCard(i,c)).join('');
     if(done.length)h+=`<div><div class="slabel">visto / escuchado ✓</div>${done.map(i=>renderReleaseCard(i,c)).join('')}</div>`;
   } else {
+    const pending=arr.filter(i=>!i.done);
+    const done=arr.filter(i=>i.done);
     if(pending.length)h+=`<div><div class="slabel">pendientes</div>${pending.map(i=>renderItem(i,c,showPlan)).join('')}</div>`;
     if(done.length)h+=`<div><div class="slabel">completados</div>${done.map(i=>renderItem(i,c,false)).join('')}</div>`;
   }
@@ -974,6 +1064,70 @@ function renderItem(item,c,showPlan){
   const pb=showPlan&&!item.done?`<button class="plan-btn" onclick="makePlan(event,'${item.id}','${c}')">hacer plan</button>`:'';
   const calBtn=NEED_DATE.includes(c)&&item.date?`<button class="cal-btn" onclick="addToCalendar(items['${c}'].find(i=>i.id==='${item.id}'),'${c}')" title="Agregar al calendario">📅</button>`:'';
   return `<div class="list-item"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}${ls}</div>${ml}${pb}${calBtn}<button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button><button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>`;
+}
+
+function parseItemText(raw){
+  if(!raw)return{text:'',cumpleId:null};
+  const parts=raw.split('|||');
+  return{text:parts[0],cumpleId:parts[1]||null};
+}
+
+const SHARE_CATS=['eventos','citas','ejercicio','salud'];
+
+function buildShareMsg(item,c){
+  const{text}=parseItemText(item.text);
+  const{locName,lat,lon}=parseLocationFull(item.location?item.location.split('||')[0]:null);
+  const mapLink=mapsUrl(lat,lon,locName);
+  const timeStr=item.date&&item.date.includes('T')?`📅 ${fmtDate(item.date)}, ${fmtTime(item.date)}`:(item.date?`📅 ${fmtDate(item.date)}`:'');
+  const locStr=locName?(mapLink?`📍 ${locName} → ${mapLink}`:`📍 ${locName}`):'';
+  const userName=user?.user_metadata?.full_name||user?.email||'';
+  const inviteLink=buildInviteLink({...item,text},c,userName);
+  const emoji={eventos:'📅',citas:'🤝',ejercicio:'🏃',salud:'💊'}[c]||'✨';
+  return [
+    `${emoji} *${text}*`,
+    timeStr,
+    locStr,
+    `\n¿Lo guardas en tu Kami? 👉 ${inviteLink}`
+  ].filter(Boolean).join('\n').trim();
+}
+
+function renderItem(item,c,showPlan){
+  const{text,cumpleId}=parseItemText(item.text);
+  // Ejercicio con invitado → card estilo WhatsApp
+  if(c==='ejercicio'&&item.location&&item.location.includes('||')){
+    const{loc,guest}=parseLocation(item.location);
+    const{locName,lat,lon}=parseLocationFull(loc);
+    const ds=item.date?fmtDate(item.date):'';
+    const meta=[guest?`Con: ${guest}`:'',ds,locName].filter(Boolean).join(' · ');
+    const mapsLink=mapsUrl(lat,lon,locName);
+    const userName=user?.user_metadata?.full_name||user?.email||'';
+    const inviteLink=buildInviteLink({...item,text},c,userName);
+    const timeStr=item.date&&item.date.includes('T')?`📅 ${fmtDate(item.date)}, ${fmtTime(item.date)}`:(item.date?`📅 ${fmtDate(item.date)}`:'');
+    const locStr=locName?(mapsLink?`📍 ${locName} → ${mapsLink}`:`📍 ${locName}`):'';
+    const msg=`Oye ${guest}! Te propongo hacer ejercicio juntos: *${text}* 💪\n${timeStr}\n${locStr}\n\n¿Te apuntas? Guárdalo en tu Kami 👉 ${inviteLink}`.trim();
+    return `<div class="wa-card">
+      <div class="wa-head"><div class="wa-icon" style="background:#0f6e56">🏃</div><div><div class="wa-name">${text}</div><div class="wa-sub">${meta}</div></div><button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" style="margin-left:auto">✏️</button><button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>
+      <div class="wa-bubble">${msg.replace(/\n/g,'<br>')}</div>
+      <div class="wa-actions">
+        ${item.date?`<button class="wa-btn" onclick="addToCalendar(items['${c}'].find(i=>i.id==='${item.id}'),'${c}')">📅</button>`:''}
+        <button class="wa-btn kami" onclick="copyInvite('${encodeURIComponent(inviteLink)}')">🔗 Invitar a Kami</button>
+        <button class="wa-btn send" onclick="sendWA('${encodeURIComponent(msg)}')">WhatsApp 💚</button>
+      </div>
+    </div>`;
+  }
+  const{loc}=parseLocation(item.location);
+  const{locName,lat,lon}=parseLocationFull(loc);
+  const ds=item.date?`<div class="lmeta">${fmtDate(item.date)}${item.date.includes('T')?', '+fmtTime(item.date):''}</div>`:'';
+  const ls=locName?`<div class="lmeta">📍 ${locName}</div>`:'';
+  const mapLink=mapsUrl(lat,lon,locName);
+  const ml=mapLink?`<a href="${mapLink}" target="_blank" style="font-size:10px;color:var(--pink);text-decoration:none;margin-right:4px" onclick="event.stopPropagation()">maps</a>`:'';
+  const pb=showPlan&&!item.done?`<button class="plan-btn" onclick="makePlan(event,'${item.id}','${c}')">hacer plan</button>`:'';
+  const calBtn=NEED_DATE.includes(c)&&item.date?`<button class="cal-btn" onclick="addToCalendar(items['${c}'].find(i=>i.id==='${item.id}'),'${c}')" title="Agregar al calendario">📅</button>`:'';
+  const shareBtn=SHARE_CATS.includes(c)&&!item.done?`<button class="cal-btn" onclick="sendWA('${encodeURIComponent(buildShareMsg(items['${c}'].find(i=>i.id==='${item.id}'),'${c}'))}')">📤</button>`:'';
+  // Cumple link badge
+  const cumplePerson=cumpleId?(items.cumples||[]).find(i=>i.id===cumpleId):null;
+  const cumpleBadge=cumplePerson?`<div style="font-size:10px;color:#d85a30;margin-top:3px">🎂 ${cumplePerson.text.split(' ')[0]}</div>`:'';
+  return `<div class="list-item"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${text}</div>${ds}${ls}${cumpleBadge}</div>${ml}${pb}${calBtn}${shareBtn}<button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button><button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>`;
 }
 
 function copyInvite(encodedLink){
@@ -1075,6 +1229,7 @@ function openSheet(c){
 function closeSheet(){
   document.getElementById('overlay').classList.remove('open');
   ['sheetInput','sheetDate','sheetLocation','sheetGuest','sheetLink','sheetNote'].forEach(id=>document.getElementById(id).value='');
+  const sc=document.getElementById('sheetCumple');if(sc)sc.value='';
   placeData.sheet=null;selectedSubtype=null;
 }
 
@@ -1090,6 +1245,15 @@ function selectCat(btn,c){
   const isRelease=c==='cultura'||c==='bts';
   document.getElementById('sheetLinkWrap').style.display=isRelease?'block':'none';
   document.getElementById('sheetNoteWrap').style.display=isRelease?'block':'none';
+  // Cumple link — for eventos and citas
+  const canLinkCumple=c==='eventos'||c==='citas';
+  const cumpleWrap=document.getElementById('sheetCumpleWrap');
+  cumpleWrap.style.display=canLinkCumple?'block':'none';
+  if(canLinkCumple){
+    const sel=document.getElementById('sheetCumple');
+    const cumples=(items.cumples||[]);
+    sel.innerHTML='<option value="">— Sin vincular —</option>'+cumples.map(p=>`<option value="${p.id}">${p.text}</option>`).join('');
+  }
   // Subtypes
   const stWrap=document.getElementById('sheetSubtypeWrap');
   const stScroll=document.getElementById('sheetSubtypeScroll');
@@ -1107,7 +1271,7 @@ function selectCat(btn,c){
     const isCumple=c==='cumples';
     document.getElementById('sheetDate').style.display=isCumple?'none':'block';
     document.getElementById('sheetDateSimple').style.display=isCumple?'block':'none';
-    document.getElementById('sheetDateLabel').textContent=isCumple?'Fecha de cumpleaños':'Fecha de lanzamiento / evento';
+    document.getElementById('sheetDateLabel').textContent=isCumple?'Fecha de cumpleaños':'Fecha y hora';
   }
 }
 
@@ -1135,9 +1299,11 @@ async function saveItem(){
     const note=document.getElementById('sheetNote').value.trim()||'';
     location=`~~${selectedSubtype||''}~~${link}~~${note}`;
   }
+  const cumpleId=document.getElementById('sheetCumple')?.value||'';
+  const finalText=cumpleId?`${text}|||${cumpleId}`:text;
   const btn=document.getElementById('saveBtn');
   btn.textContent='Guardando...';btn.disabled=true;
-  await addItem(cat,text,date,location);
+  await addItem(cat,finalText,date,location);
   placeData.sheet=null;
   btn.textContent='Guardar';btn.disabled=false;
   closeSheet();switchViewTo(cat);
