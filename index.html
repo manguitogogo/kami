@@ -250,8 +250,6 @@ Continuar con Google
 <button class="tab active" data-view="hoy" onclick="switchView('hoy',this)"><div class="tab-dot" style="background:var(--pink)"></div>Hoy</button>
 <button class="tab" data-view="compras" onclick="switchView('compras',this)"><div class="tab-dot" style="background:#1d9e75"></div>Compras</button>
 <button class="tab" data-view="eventos" onclick="switchView('eventos',this)"><div class="tab-dot" style="background:#ba7517"></div>Eventos</button>
-<button class="tab" data-view="peliculas" onclick="switchView('peliculas',this)"><div class="tab-dot" style="background:#7f77dd"></div>Películas</button>
-<button class="tab" data-view="libros" onclick="switchView('libros',this)"><div class="tab-dot" style="background:#378add"></div>Libros</button>
 <button class="tab" data-view="citas" onclick="switchView('citas',this)"><div class="tab-dot" style="background:#E8637A"></div>Citas</button>
 <button class="tab" data-view="salud" onclick="switchView('salud',this)"><div class="tab-dot" style="background:#e24b4a"></div>Salud</button>
 <button class="tab" data-view="cumples" onclick="switchView('cumples',this)"><div class="tab-dot" style="background:#d85a30"></div>Cumpleaños</button>
@@ -274,8 +272,6 @@ Continuar con Google
 <div class="cat-scroll">
 <button class="cat-chip sel" data-cat="compras" onclick="selectCat(this,'compras')"><div class="cat-cdot" style="background:#1d9e75"></div>Compras</button>
 <button class="cat-chip" data-cat="eventos" onclick="selectCat(this,'eventos')"><div class="cat-cdot" style="background:#ba7517"></div>Evento</button>
-<button class="cat-chip" data-cat="peliculas" onclick="selectCat(this,'peliculas')"><div class="cat-cdot" style="background:#7f77dd"></div>Película</button>
-<button class="cat-chip" data-cat="libros" onclick="selectCat(this,'libros')"><div class="cat-cdot" style="background:#378add"></div>Libro</button>
 <button class="cat-chip" data-cat="citas" onclick="selectCat(this,'citas')"><div class="cat-cdot" style="background:#E8637A"></div>Cita</button>
 <button class="cat-chip" data-cat="salud" onclick="selectCat(this,'salud')"><div class="cat-cdot" style="background:#e24b4a"></div>Salud</button>
 <button class="cat-chip" data-cat="cumples" onclick="selectCat(this,'cumples')"><div class="cat-cdot" style="background:#d85a30"></div>Cumpleaños</button>
@@ -657,20 +653,40 @@ function renderHoy(){
   if(todayItems.length){
     h+=`<div><div class="slabel">para hoy</div>`;
     todayItems.forEach(item=>{
-      const color=COLORS[item.cat];
-      const badge=BADGES[item.cat];
+      const c=item.cat;
+      const isRelease=c==='bts'||c==='cultura';
+      const color=COLORS[c]||'#888';
+      const badge=BADGES[c]||'bgr';
       const t=item.date&&item.date.includes('T')?fmtTime(item.date):'';
-      const loc=item.location?` · ${item.location}`:'';
-      const ml=item.location?`<a href="https://maps.google.com/?q=${encodeURIComponent(item.location)}" target="_blank" style="font-size:10px;color:var(--pink);text-decoration:none;flex-shrink:0;margin-right:4px">📍</a>`:'';
-      h+=`<div class="reminder-item"><div class="r-accent" style="background:${color}"></div><div class="r-info"><div class="r-title">${item.text}</div><div class="r-meta">${t}${loc||(!t?LABELS[item.cat]:'')}</div></div>${ml}<div class="r-badge ${badge}">${LABELS[item.cat]}</div></div>`;
+      if(isRelease){
+        const{subtype,link,note}=parseRelease(item.location);
+        const typeLabel=getSubtypeLabel(c,subtype);
+        const noteStr=note?` · 💬 ${note}`:'';
+        const isBts=c==='bts';
+        h+=`<div class="reminder-item" style="${isBts?'border-color:rgba(155,142,196,0.3);background:rgba(155,142,196,0.05)':''}">
+          <div class="r-accent" style="background:${color}"></div>
+          <div class="r-info">
+            <div class="r-title">${item.text}</div>
+            <div class="r-meta">${t?t+' · ':''}${typeLabel}${noteStr}</div>
+          </div>
+          ${link?`<a href="${link}" target="_blank" style="font-size:10px;color:${isBts?'#9B8EC4':'var(--pink)'};text-decoration:none;flex-shrink:0;margin-right:4px">🔗</a>`:''}
+          <div class="r-badge ${badge}">${LABELS[c]}</div>
+        </div>`;
+      } else {
+        const{locName,lat,lon}=parseLocationFull(item.location?item.location.split('||')[0]:null);
+        const loc=locName?` · ${locName}`:'';
+        const mapLink=mapsUrl(lat,lon,locName);
+        const ml=mapLink?`<a href="${mapLink}" target="_blank" style="font-size:10px;color:var(--pink);text-decoration:none;flex-shrink:0;margin-right:4px">📍</a>`:'';
+        h+=`<div class="reminder-item"><div class="r-accent" style="background:${color}"></div><div class="r-info"><div class="r-title">${item.text}</div><div class="r-meta">${t}${loc||(!t?LABELS[c]:'')}</div></div>${ml}<div class="r-badge ${badge}">${LABELS[c]}</div></div>`;
+      }
     });
     h+=`</div>`;
   }
   const pc=(items.compras||[]).filter(i=>!i.done);
-  const pp=(items.peliculas||[]).filter(i=>!i.done);
+  const pcu=(items.cultura||[]).filter(i=>!i.done);
   h+=`<div><div class="slabel">resumen rápido</div><div class="quick-grid">
 <div class="qcard" onclick="switchViewTo('compras')"><div class="qc-head"><span class="qc-label">Compras</span><span class="qc-count">${pc.length}</span></div>${pc.slice(0,3).map(i=>`<div class="qc-row"><div class="minicheck"></div>${i.text}</div>`).join('')||'<div style="font-size:11px;color:var(--text3)">Sin pendientes ✓</div>'}</div>
-<div class="qcard" onclick="switchViewTo('peliculas')"><div class="qc-head"><span class="qc-label">Películas</span><span class="qc-count">${pp.length}</span></div>${pp.slice(0,3).map(i=>`<div class="qc-row"><div class="minicheck"></div>${i.text}</div>`).join('')||'<div style="font-size:11px;color:var(--text3)">Sin pendientes ✓</div>'}</div>
+<div class="qcard" onclick="switchViewTo('cultura')"><div class="qc-head"><span class="qc-label">Cultura</span><span class="qc-count">${pcu.length}</span></div>${pcu.slice(0,3).map(i=>`<div class="qc-row"><div class="minicheck"></div>${i.text}</div>`).join('')||'<div style="font-size:11px;color:var(--text3)">Sin pendientes ✓</div>'}</div>
 </div></div>`;
   if(cumplesTom.length){
     h+=`<div><div class="slabel">mañana — cumpleaños</div>`;
@@ -699,10 +715,21 @@ function renderReleaseCard(item,c){
   const{subtype,link,note}=parseRelease(item.location);
   const isBts=c==='bts';
   const typeLabel=getSubtypeLabel(c,subtype);
-  const dateStr=item.date?`📅 ${fmtDate(item.date)}`:'';
+  const dateStr=item.date?fmtDate(item.date):'';
+  const timeStr=item.date&&item.date.includes('T')?fmtTime(item.date):'';
+  const fechaHora=[dateStr,timeStr].filter(Boolean).join(', ');
   const userName=user?.user_metadata?.full_name||user?.email||'';
   const inviteLink=buildInviteLink(item,c,userName);
-  const waMsg=`${isBts?'💜':'✨'} *${item.text}*${dateStr?' — '+dateStr:''}\n${link?'🔗 '+link:''}\n\n¿Lo guardamos juntos en Kami? 👉 ${inviteLink}`.trim();
+
+  // Mensaje completo con fecha, hora, nota y link
+  const partes=[
+    `${isBts?'💜':'✨'} *${item.text}*`,
+    fechaHora?`📅 ${fechaHora}`:'',
+    note?`💬 ${note}`:'',
+    link?`🔗 ${link}`:'',
+    `\n¿Lo guardamos juntos en Kami? 👉 ${inviteLink}`
+  ].filter(Boolean).join('\n');
+  const waMsg=partes.trim();
   if(isBts){
     const emoji=typeLabel.split(' ')[0];
     const typeName=typeLabel.split(' ').slice(1).join(' ');
@@ -714,7 +741,7 @@ function renderReleaseCard(item,c){
         <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')">✏️</button>
         <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
       </div>
-      ${dateStr?`<div class="bts-meta">${dateStr}</div>`:''}
+      ${fechaHora?`<div class="bts-meta">📅 ${fechaHora}</div>`:''}
       ${note?`<div class="bts-note">💜 ${note}</div>`:''}
       <div class="bts-actions">
         ${link?`<button class="bts-btn primary" onclick="window.open('${link}','_blank')">🎧 Abrir link</button>`:''}
@@ -732,7 +759,7 @@ function renderReleaseCard(item,c){
       <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')">✏️</button>
       <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
     </div>
-    ${dateStr?`<div class="release-meta">${dateStr}</div>`:''}
+    ${fechaHora?`<div class="release-meta">📅 ${fechaHora}</div>`:''}
     ${note?`<div class="release-note">💬 ${note}</div>`:''}
     <div class="release-actions">
       ${link?`<button class="release-btn link" onclick="window.open('${link}','_blank')">🔗 Abrir</button>`:''}
