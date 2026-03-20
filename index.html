@@ -1196,7 +1196,7 @@ function renderHoy(){
           return `<div style="font-size:11px;color:var(--text2);margin-bottom:3px">🎉 <b>${text}</b>${t?' — '+t:''}${locName?' · '+locName:''}</div>`;
         }).join('')}
       </div>`:'';
-      h+=`<div class="wa-card"><div class="wa-head"><div class="wa-icon">🎂</div><div><div class="wa-name">Cumple de ${c.text}</div><div class="wa-sub">draft listo</div></div></div>${linkedHtml}<div class="wa-bubble">${msg}</div><div class="wa-actions"><button class="wa-btn send" onclick="sendWA(msg)">Enviar por WhatsApp</button></div></div>`;
+      h+=`<div class="wa-card"><div class="wa-head"><div class="wa-icon">🎂</div><div><div class="wa-name">Cumple de ${c.text}</div><div class="wa-sub">draft listo</div></div></div>${linkedHtml}<div class="wa-bubble">${msg}</div><div class="wa-actions"><button class="wa-btn send" onclick="sendWA('${encodeURIComponent(msg)}')">Enviar por WhatsApp</button></div></div>`;
     });
     h+=`</div>`;
   }
@@ -1251,7 +1251,7 @@ function renderReleaseCard(item,c){
         ${item.date?`<button class="bts-btn" onclick="addToCalendarById('${item.id}','${c}')">📅 Calendario</button>`:''}
         <button class="bts-btn" onclick="copyInvite('${encodeURIComponent(inviteLink)}')">🔗 Invitar</button>
         <button class="bts-btn" onclick="openInviteCard('${item.id}','${c}')">🎨 Tarjeta</button>
-        <button class="bts-btn wa" onclick="sendWA(waMsg)">WhatsApp</button>
+        <button class="bts-btn wa" onclick="sendWA('${encodeURIComponent(waMsg)}')">WhatsApp</button>
       </div>
     </div>`;
   }
@@ -1271,7 +1271,7 @@ function renderReleaseCard(item,c){
       ${item.date?`<button class="release-btn" onclick="addToCalendarById('${item.id}','${c}')">📅 Cal</button>`:''}
       <button class="release-btn" onclick="copyInvite('${encodeURIComponent(inviteLink)}')">📤 Invitar</button>
       <button class="release-btn" onclick="openInviteCard('${item.id}','${c}')">🎨</button>
-      <button class="release-btn wa" onclick="sendWA(waMsg)">WhatsApp 💚</button>
+      <button class="release-btn wa" onclick="sendWA('${encodeURIComponent(waMsg)}')">WhatsApp 💚</button>
     </div>
   </div>`;
 }
@@ -1371,7 +1371,7 @@ function renderItem(item,c,showPlan){
         ${item.date?`<button class="wa-btn" onclick="addToCalendarById('${item.id}','${c}')">📅</button>`:''}
         <button class="wa-btn" onclick="openInviteCard('${item.id}','${c}')">🎨</button>
         <button class="wa-btn kami" onclick="copyInvite('${encodeURIComponent(inviteLink)}')">🔗 Invitar</button>
-        <button class="wa-btn send" onclick="sendWA(msg)">WhatsApp 💚</button>
+        <button class="wa-btn send" onclick="sendWA('${encodeURIComponent(msg)}')">WhatsApp 💚</button>
       </div>
     </div>`;
   }
