@@ -642,8 +642,9 @@ function drawInviteCard(item,c){
     y+=48;
   }
 
-  // Location
-  const{locName}=parseLocationFull(item.location?item.location.split('||')[0]:null);
+  // Location — strip @@ cumpleId suffix before parsing
+  const rawLocCard=item.location?item.location.split('@@')[0].split('||')[0]:'';
+  const{locName}=parseLocationFull(rawLocCard||null);
   if(locName){
     ctx.font='28px sans-serif';
     ctx.fillStyle=pal.text+'bb';
@@ -654,6 +655,16 @@ function drawInviteCard(item,c){
       ctx.fillText(locText,48,y);
     }
     y+=48;
+  }
+
+  // Cumple badge on card
+  const cumpleIdCard=item.location&&item.location.includes('@@')?item.location.split('@@')[1]:null;
+  const cumplePersonCard=cumpleIdCard?(items.cumples||[]).find(i=>i.id===cumpleIdCard):null;
+  if(cumplePersonCard){
+    ctx.font='22px sans-serif';
+    ctx.fillStyle=pal.accent;
+    ctx.fillText(`🎂 Cumple de ${cumplePersonCard.text.split(' ')[0]}`,48,y);
+    y+=40;
   }
 
   // Invite CTA
@@ -943,11 +954,15 @@ function dismissInvite(){
 }
 
 function buildInviteLink(item,c,from){
-  const{locName,lat,lon,guest}=parseLocationFull(item.location);
-  const locParam=locName?`&loc=${encodeURIComponent(item.location||locName)}`:'';
+  // Clean location: strip @@cumpleId suffix, parse JSON to get name
+  const rawLoc=item.location?item.location.split('@@')[0]:'';
+  const{locName,lat,lon,mapsLink}=parseLocationFull(rawLoc||null);
+  const finalMapLink=mapsLink||mapsUrl(lat,lon,locName);
+  const locParam=locName?`&loc=${encodeURIComponent(locName)}`:'';
+  const mapsParam=finalMapLink?`&maps=${encodeURIComponent(finalMapLink)}`:'';
   const dateParam=item.date?`&date=${encodeURIComponent(item.date)}`:'';
   const fromParam=from?`&de=${encodeURIComponent(from)}`:'';
-  return `https://kami-kohl.vercel.app?invite=${c}&txt=${encodeURIComponent(item.text)}${dateParam}${locParam}${fromParam}`;
+  return `https://kami-kohl.vercel.app?invite=${c}&txt=${encodeURIComponent(item.text)}${dateParam}${locParam}${mapsParam}${fromParam}`;
 }
 
 async function init(){
@@ -1344,10 +1359,12 @@ function renderItem(item,c,showPlan){
       </div>
     </div>`;
   }
-  const{loc}=parseLocation(item.location);
-  const{locName,lat,lon,website,phone,hours,mapsLink}=parseLocationFull(loc);
+  // Strip @@cumpleId from location before parsing
+  const rawLoc=item.location?item.location.split('@@')[0]:'';
+  const cumpleId=item.location&&item.location.includes('@@')?item.location.split('@@')[1]:null;
+  const{loc}=parseLocation(rawLoc);
+  const{locName,lat,lon,website,phone,hours,mapsLink}=parseLocationFull(loc||rawLoc||null);
   const ds=item.date?`<div class="lmeta">${fmtDate(item.date)}${item.date.includes('T')?', '+fmtTime(item.date):''}</div>`:'';
-  // Maps link: prefer manual mapsLink, then coords, then name search
   const finalMapsLink=mapsLink||mapsUrl(lat,lon,locName);
   const placeLinks=[
     finalMapsLink?`<a href="${finalMapsLink}" target="_blank" style="color:var(--pink);text-decoration:none;font-size:10px">📍 Maps</a>`:'',
@@ -1356,11 +1373,14 @@ function renderItem(item,c,showPlan){
   ].filter(Boolean);
   const ls=locName?`<div class="lmeta">📍 ${locName}${hours?' · 🕐 '+hours:''}</div>`:'';
   const placeRow=placeLinks.length?`<div style="display:flex;gap:8px;margin-top:3px;flex-wrap:wrap">${placeLinks.join('')}</div>`:'';
+  // Cumple badge
+  const cumplePerson=cumpleId?(items.cumples||[]).find(i=>i.id===cumpleId):null;
+  const cumpleBadge=cumplePerson?`<div style="font-size:10px;color:#d85a30;margin-top:3px">🎂 Cumple de ${cumplePerson.text.split(' ')[0]}</div>`:'';
   const pb=showPlan&&!item.done?`<button class="plan-btn" onclick="makePlan(event,'${item.id}','${c}')">hacer plan</button>`:'';
   const calBtn=NEED_DATE.includes(c)&&item.date?`<button class="cal-btn" onclick="addToCalendarById('${item.id}','${c}')" title="Calendario">📅</button>`:'';
-  const shareBtn=SHARE_CATS.includes(c)&&!item.done?`<button class="cal-btn" onclick="shareItem('${item.id}','${c}')" title="Compartir">📤</button>`:'';
-  const cardBtn=SHARE_CATS.includes(c)&&!item.done?`<button class="cal-btn" onclick="openInviteCard('${item.id}','${c}')" title="Invitación">🎨</button>`:'';
-  return `<div class="list-item"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}${ls}${placeRow}</div>${pb}${calBtn}${shareBtn}${cardBtn}<button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button><button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>`;
+  const waBtn=SHARE_CATS.includes(c)&&!item.done?`<button class="cal-btn" onclick="shareItem('${item.id}','${c}')" title="WhatsApp" style="color:#25d366">💬</button>`:'';
+  const cardBtn=SHARE_CATS.includes(c)&&!item.done?`<button class="cal-btn" onclick="openInviteCard('${item.id}','${c}')" title="Tarjeta">🎨</button>`:'';
+  return `<div class="list-item"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}${ls}${placeRow}${cumpleBadge}</div>${pb}${calBtn}${waBtn}${cardBtn}<button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button><button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>`;
 }
 
 function copyInvite(encodedLink){
@@ -1373,10 +1393,11 @@ const SHARE_CATS=['eventos','citas','ejercicio','salud'];
 function shareItem(id,c){
   const item=(items[c]||[]).find(i=>i.id===id);
   if(!item)return;
-  const{locName,lat,lon}=parseLocationFull(item.location?item.location.split('||')[0]:null);
-  const mapLink=mapsUrl(lat,lon,locName);
+  const rawLoc=item.location?item.location.split('@@')[0].split('||')[0]:'';
+  const{locName,lat,lon,mapsLink}=parseLocationFull(rawLoc||null);
+  const finalMapLink=mapsLink||mapsUrl(lat,lon,locName);
   const timeStr=item.date&&item.date.includes('T')?`📅 ${fmtDate(item.date)}, ${fmtTime(item.date)}`:(item.date?`📅 ${fmtDate(item.date)}`:'');
-  const locStr=locName?(mapLink?`📍 ${locName} → ${mapLink}`:`📍 ${locName}`):'';
+  const locStr=locName?(finalMapLink?`📍 ${locName} → ${finalMapLink}`:`📍 ${locName}`):'';
   const userName=user?.user_metadata?.full_name||user?.email||'';
   const inviteLink=buildInviteLink(item,c,userName);
   const emoji={eventos:'📅',citas:'🤝',ejercicio:'🏃',salud:'💊'}[c]||'✨';
