@@ -919,9 +919,10 @@ function checkInviteParams(){
 function showInviteScreen(){
   if(!inviteData)return;
   const{cat,text,date,location,mapsLink,from,calOnly}=inviteData;
-  // If cal=1, trigger ICS download and show invite screen
+  // Build a proper location JSON for the fakeItem
+  const locObj=location||mapsLink?JSON.stringify({name:location||'',lat:null,lon:null,mapsLink:mapsLink||null}):null;
   if(calOnly&&date){
-    const fakeItem={id:'invite',text,date,location};
+    const fakeItem={id:'invite',text,date,location:locObj};
     setTimeout(()=>addToCalendar(fakeItem,cat),500);
   }
   const icons={ejercicio:'🏃',eventos:'📅',citas:'🤝',peliculas:'🎬',libros:'📚',compras:'🛒',salud:'💊',cumples:'🎂',recordatorios:'🔔',ideas:'💡',bts:'💜',cultura:'✨'};
@@ -940,8 +941,9 @@ function showInviteScreen(){
 
 function addInviteToCalendar(){
   if(!inviteData||!inviteData.date)return;
-  const fakeItem={id:'invite',text:inviteData.text,date:inviteData.date,location:inviteData.location};
-  addToCalendar(fakeItem,inviteData.cat);
+  const{text,date,location,mapsLink,cat}=inviteData;
+  const locObj=location||mapsLink?JSON.stringify({name:location||'',lat:null,lon:null,mapsLink:mapsLink||null}):null;
+  addToCalendar({id:'invite',text,date,location:locObj},cat);
 }
 
 async function saveInvite(){
@@ -1418,14 +1420,12 @@ function shareItem(id,c){
   const calLink=`${inviteLink}&cal=1`;
 
   const FRASES=[
-    '🎉 Buena vibra requerida, regalo opcional',
-    '🚨 Asistencia obligatoria, excusas no aceptadas',
-    '🥳 El único plan que no puedes cancelar',
-    '😂 No faltes o te contamos todo sin ti',
-    '✨ Ven a hacer memoria con nosotras',
-    '💅 Dress code: felicidad y antojo',
     '🎂 Spoiler: habrá pastel',
     '💜 Tu presencia es el mejor regalo',
+    '✨ Ven a hacer memoria',
+    '🥳 El único plan que no puedes cancelar',
+    '💅 Dress code: felicidad y antojo',
+    '🎉 Buena vibra requerida, regalo opcional',
   ];
   const frase=cumplePerson?FRASES[Math.floor(Math.random()*FRASES.length)]:'';
 
