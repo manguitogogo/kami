@@ -1706,7 +1706,8 @@ async function saveItem(){
     switchViewTo(cat);
   }catch(err){
     console.error('saveItem error:',err);
-    alert('Error al guardar: '+(err.message||'intenta de nuevo'));
+    const msg='Error: '+(err?.message||err?.details||err?.hint||JSON.stringify(err)||'desconocido');
+    alert(msg);
   }finally{
     btn.textContent='Guardar';btn.disabled=false;
   }
