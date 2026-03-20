@@ -859,21 +859,27 @@ async function fetchPlaceInfo(lat,lon,infoId){
 function hideSug(sugId){setTimeout(()=>{const s=document.getElementById(sugId);if(s)s.style.display='none';},400);}
 
 function getLocationStr(key){
-  let obj=placeData[key]?{...placeData[key]}:null;
+  // Get values from fields
   const inputId=key==='sheet'?'sheetLocation':key==='edit'?'editLocation':'cumpleEventLocation';
   const mapsId=key==='sheet'?'sheetMapsLink':key==='edit'?'editMapsLink':'cumpleMapsLink';
   const webId=key==='sheet'?'sheetWebLink':key==='edit'?'editWebLink':'cumpleWebLink';
-  const val=document.getElementById(inputId)?.value.trim()||'';
-  const mapsLink=document.getElementById(mapsId)?.value.trim()||'';
-  const webLink=document.getElementById(webId)?.value.trim()||'';
-  // Need at least a name or a link
-  if(!val&&!mapsLink&&!webLink&&!obj)return null;
-  if(!obj)obj={name:val||'',lat:null,lon:null};
-  else if(val&&!obj.name)obj.name=val;
+  const name=(document.getElementById(inputId)?.value||'').trim();
+  const mapsLink=(document.getElementById(mapsId)?.value||'').trim();
+  const webLink=(document.getElementById(webId)?.value||'').trim();
+
+  // Start from placeData if available (has coords from autocomplete)
+  const obj=placeData[key]?{...placeData[key]}:{name,lat:null,lon:null};
+
+  // Override name if user typed something
+  if(name&&!obj.name)obj.name=name;
+
+  // Add links if provided
   if(mapsLink)obj.mapsLink=mapsLink;
   if(webLink)obj.website=webLink;
-  // Don't save empty objects with no useful info
-  if(!obj.name&&!obj.mapsLink&&!obj.website&&!obj.lat)return null;
+
+  // If absolutely nothing useful — return null (location is optional)
+  if(!obj.name&&!obj.mapsLink&&!obj.website&&!obj.lat&&!obj.lon)return null;
+
   return JSON.stringify(obj);
 }
 
@@ -885,7 +891,7 @@ function parseLocationFull(raw){
   if(!locPart)return{loc:null,lat:null,lon:null,guest,locName:null,website:null,instagram:null,phone:null,hours:null,mapsLink:null};
   try{
     const obj=JSON.parse(locPart);
-    return{loc:locPart,lat:obj.lat,lon:obj.lon,locName:obj.name,guest,website:obj.website||null,instagram:obj.instagram||null,phone:obj.phone||null,hours:obj.hours||null,mapsLink:obj.mapsLink||null};
+    return{loc:locPart,lat:obj.lat,lon:obj.lon,locName:obj.name||null,guest,website:obj.website||null,instagram:obj.instagram||null,phone:obj.phone||null,hours:obj.hours||null,mapsLink:obj.mapsLink||null};
   }catch{
     return{loc:locPart,lat:null,lon:null,locName:locPart,guest,website:null,instagram:null,phone:null,hours:null,mapsLink:null};
   }
