@@ -1092,7 +1092,7 @@ async function loadItems(){
 
 async function addItem(category,text,date,location){
   const{data,error}=await sb.from('items').insert([{user_id:user.id,category,text,date:date||null,location:location||null,done:false}]).select().single();
-  if(error){console.error('addItem error:',error);alert('Error al guardar: '+error.message);return null;}
+  if(error){console.error('addItem error:',error);throw error;}
   if(!items[category])items[category]=[];
   items[category].unshift(data);
   return data;
@@ -1399,11 +1399,6 @@ function renderItem(item,c,showPlan){
   return `<div class="list-item"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}${ls}${placeRow}${cumpleBadge}</div>${pb}${calBtn}${waBtn}${cardBtn}<button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button><button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>`;
 }
 
-function copyInvite(encodedLink){
-  const link=decodeURIComponent(encodedLink);
-  navigator.clipboard.writeText(link).then(()=>alert('¡Link copiado! 🔗')).catch(()=>alert(link));
-}
-
 const SHARE_CATS=['eventos','citas','ejercicio','salud'];
 
 function shareItem(id,c){
@@ -1501,17 +1496,14 @@ async function saveCumpleEvent(){
   const btn=document.getElementById('cumpleEventBtn');
   btn.textContent='Guardando...';btn.disabled=true;
   try{
-    const result=await addItem('eventos',text,date,location);
-    if(result){
-      closeCumpleEvent();
-      render();
-    } else {
-      btn.textContent='Guardar';btn.disabled=false;
-    }
+    await addItem('eventos',text,date,location);
+    closeCumpleEvent();
+    render();
   }catch(err){
     console.error('saveCumpleEvent error:',err);
-    btn.textContent='Guardar';btn.disabled=false;
     alert('Error al guardar. Intenta de nuevo.');
+  }finally{
+    btn.textContent='Guardar';btn.disabled=false;
   }
 }
 
@@ -1600,8 +1592,9 @@ async function saveEdit(){
   }catch(err){
     console.error('saveEdit error:',err);
     alert('Error al guardar: '+(err.message||'intenta de nuevo'));
+  }finally{
+    btn.textContent='Guardar';btn.disabled=false;
   }
-  btn.textContent='Guardar';btn.disabled=false;
 }
 function sendWA(msg){window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');}
 
@@ -1683,31 +1676,34 @@ async function saveItem(){
   if(!text){document.getElementById('sheetInput').focus();return;}
   const dateEl=document.getElementById('sheetDate').style.display!='none'?document.getElementById('sheetDate'):document.getElementById('sheetDateSimple');
   const date=dateEl.value||null;
-  let location=getLocationStr('sheet');
-  if(cat==='ejercicio'){
-    const guest=document.getElementById('sheetGuest').value.trim();
-    if(guest) location=(location?location:'')+'||'+guest;
-  }
+
+  let location=null;
   const isRelease=cat==='cultura'||cat==='bts';
   if(isRelease){
     const link=document.getElementById('sheetLink').value.trim()||'';
     const note=document.getElementById('sheetNote').value.trim()||'';
     location=`~~${selectedSubtype||''}~~${link}~~${note}`;
+  } else if(NEED_LOC.includes(cat)){
+    location=getLocationStr('sheet');
+    if(cat==='ejercicio'){
+      const guest=document.getElementById('sheetGuest').value.trim();
+      if(guest)location=(location||'')+'||'+guest;
+    }
   }
+
   const btn=document.getElementById('saveBtn');
   btn.textContent='Guardando...';btn.disabled=true;
   try{
-    const result=await addItem(cat,text,date,location);
-    if(result){
-      placeData.sheet=null;
-      closeSheet();
-      switchViewTo(cat);
-    }
+    await addItem(cat,text,date,location);
+    placeData.sheet=null;
+    closeSheet();
+    switchViewTo(cat);
   }catch(err){
     console.error('saveItem error:',err);
     alert('Error al guardar: '+(err.message||'intenta de nuevo'));
+  }finally{
+    btn.textContent='Guardar';btn.disabled=false;
   }
-  btn.textContent='Guardar';btn.disabled=false;
 }
 
 function switchView(v,btn){
