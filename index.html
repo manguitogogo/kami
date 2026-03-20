@@ -1409,27 +1409,27 @@ function shareItem(id,c){
   const timeStr=item.date&&item.date.includes('T')?`📅 ${fmtDate(item.date)}, ${fmtTime(item.date)}`:(item.date?`📅 ${fmtDate(item.date)}`:'');
   const userName=user?.user_metadata?.full_name||user?.email||'';
   const inviteLink=buildInviteLink(item,c,userName);
-  // Check cumple link
   const cumpleId=item.location&&item.location.includes('@@')?item.location.split('@@')[1]:null;
   const cumplePerson=cumpleId?(items.cumples||[]).find(i=>i.id===cumpleId):null;
-  const emoji={eventos:'🎉',citas:'🤝',ejercicio:'🏃',salud:'💊'}[c]||'✨';
-  const titleLine=cumplePerson?`${emoji} *${item.text} — Cumple de ${cumplePerson.text.split(' ')[0]}*`:`${emoji} *${item.text}*`;
-  // Calendar download link via invite URL with cal flag
   const calLink=`${inviteLink}&cal=1`;
-  const parts=[
-    titleLine,
-    timeStr,
-    locName?`📍 ${locName}`:'',
-    finalMapLink?`🗺️ ${finalMapLink}`:'',
-    website?`🌐 ${website.startsWith('http')?website:'https://'+website}`:'',
-    '',
-    `📲 Agregar al calendario → ${calLink}`,
-    `💜 Guardar en Kami → ${inviteLink}`,
-    '',
-    '_vía kami 🌸_'
-  ].filter(s=>s!==undefined);
-  // Remove consecutive empty strings
-  const msg=parts.join('\n').replace(/\n\n\n+/g,'\n\n').trim();
+
+  // Build message line by line like ejercicio
+  let msg='';
+  if(cumplePerson){
+    msg+=`🎉 *Vamos a celebrar a ${cumplePerson.text.split(' ')[0]}*\n`;
+  } else {
+    const emoji={eventos:'🎉',citas:'🤝',ejercicio:'🏃',salud:'💊'}[c]||'✨';
+    msg+=`${emoji} *${item.text}*\n`;
+  }
+  if(timeStr) msg+=`${timeStr}\n`;
+  if(locName)  msg+=`📍 ${locName}`;
+  if(finalMapLink) msg+=` → ${finalMapLink}`;
+  if(locName||finalMapLink) msg+='\n';
+  if(website)  msg+=`🌐 ${website.startsWith('http')?website:'https://'+website}\n`;
+  msg+=`\n📲 Agregar al calendario → ${calLink}`;
+  msg+=`\n💜 Guardar en Kami → ${inviteLink}`;
+  msg+='\n\n_vía kami 🌸_';
+
   sendWA(msg);
 }
 
