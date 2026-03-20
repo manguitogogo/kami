@@ -856,17 +856,21 @@ async function fetchPlaceInfo(lat,lon,infoId){
 function hideSug(sugId){setTimeout(()=>{const s=document.getElementById(sugId);if(s)s.style.display='none';},400);}
 
 function getLocationStr(key){
-  let obj=placeData[key];
+  let obj=placeData[key]?{...placeData[key]}:null;
   const inputId=key==='sheet'?'sheetLocation':key==='edit'?'editLocation':'cumpleEventLocation';
   const mapsId=key==='sheet'?'sheetMapsLink':key==='edit'?'editMapsLink':'cumpleMapsLink';
   const webId=key==='sheet'?'sheetWebLink':key==='edit'?'editWebLink':'cumpleWebLink';
   const val=document.getElementById(inputId)?.value.trim()||'';
   const mapsLink=document.getElementById(mapsId)?.value.trim()||'';
   const webLink=document.getElementById(webId)?.value.trim()||'';
-  if(!val&&!obj)return null;
-  if(!obj)obj={name:val,lat:null,lon:null};
+  // Need at least a name or a link
+  if(!val&&!mapsLink&&!webLink&&!obj)return null;
+  if(!obj)obj={name:val||'',lat:null,lon:null};
+  else if(val&&!obj.name)obj.name=val;
   if(mapsLink)obj.mapsLink=mapsLink;
   if(webLink)obj.website=webLink;
+  // Don't save empty objects with no useful info
+  if(!obj.name&&!obj.mapsLink&&!obj.website&&!obj.lat)return null;
   return JSON.stringify(obj);
 }
 
@@ -895,30 +899,36 @@ let inviteData=null;
 
 function checkInviteParams(){
   const params=new URLSearchParams(window.location.search);
-  if(!params.get('invite'))return false;
+  if(!params.get('invite')&&!params.get('cal'))return false;
   inviteData={
-    cat:params.get('invite')||'ejercicio',
+    cat:params.get('invite')||'eventos',
     text:params.get('txt')||'',
     date:params.get('date')||null,
     location:params.get('loc')||null,
-    from:params.get('de')||'Alguien'
+    mapsLink:params.get('maps')||null,
+    from:params.get('de')||'Alguien',
+    calOnly:params.get('cal')==='1'
   };
   return true;
 }
 
 function showInviteScreen(){
   if(!inviteData)return;
-  const{cat,text,date,location,from}=inviteData;
+  const{cat,text,date,location,mapsLink,from,calOnly}=inviteData;
+  // If cal=1, trigger ICS download and show invite screen
+  if(calOnly&&date){
+    const fakeItem={id:'invite',text,date,location};
+    setTimeout(()=>addToCalendar(fakeItem,cat),500);
+  }
   const icons={ejercicio:'🏃',eventos:'📅',citas:'🤝',peliculas:'🎬',libros:'📚',compras:'🛒',salud:'💊',cumples:'🎂',recordatorios:'🔔',ideas:'💡',bts:'💜',cultura:'✨'};
   document.getElementById('inviteIcon').textContent=icons[cat]||'✨';
   document.getElementById('inviteTitle').textContent=text;
   document.getElementById('inviteFrom').textContent=`${from} te invitó a un plan`;
-  const{locName,lat,lon}=parseLocationFull(location);
   let meta='';
   if(date)meta+=`📅 ${fmtDate(date)}${date.includes('T')?', '+fmtTime(date):''}<br>`;
-  if(locName)meta+=`📍 ${locName}`;
+  if(location)meta+=`📍 ${location}`;
+  if(mapsLink)meta+=` <a href="${mapsLink}" target="_blank" style="color:var(--pink)">Maps</a>`;
   document.getElementById('inviteMeta').innerHTML=meta||'Sin detalles adicionales';
-  // Show calendar button if there's a date
   if(date)document.getElementById('inviteCalBtn').style.display='block';
   document.getElementById('loadingScreen').style.display='none';
   document.getElementById('inviteScreen').style.display='flex';
@@ -1394,14 +1404,32 @@ function shareItem(id,c){
   const item=(items[c]||[]).find(i=>i.id===id);
   if(!item)return;
   const rawLoc=item.location?item.location.split('@@')[0].split('||')[0]:'';
-  const{locName,lat,lon,mapsLink}=parseLocationFull(rawLoc||null);
+  const{locName,lat,lon,mapsLink,website}=parseLocationFull(rawLoc||null);
   const finalMapLink=mapsLink||mapsUrl(lat,lon,locName);
   const timeStr=item.date&&item.date.includes('T')?`📅 ${fmtDate(item.date)}, ${fmtTime(item.date)}`:(item.date?`📅 ${fmtDate(item.date)}`:'');
-  const locStr=locName?(finalMapLink?`📍 ${locName} → ${finalMapLink}`:`📍 ${locName}`):'';
   const userName=user?.user_metadata?.full_name||user?.email||'';
   const inviteLink=buildInviteLink(item,c,userName);
-  const emoji={eventos:'📅',citas:'🤝',ejercicio:'🏃',salud:'💊'}[c]||'✨';
-  const msg=[`${emoji} *${item.text}*`,timeStr,locStr,`\n¿Lo guardas en tu Kami? 👉 ${inviteLink}`].filter(Boolean).join('\n').trim();
+  // Check cumple link
+  const cumpleId=item.location&&item.location.includes('@@')?item.location.split('@@')[1]:null;
+  const cumplePerson=cumpleId?(items.cumples||[]).find(i=>i.id===cumpleId):null;
+  const emoji={eventos:'🎉',citas:'🤝',ejercicio:'🏃',salud:'💊'}[c]||'✨';
+  const titleLine=cumplePerson?`${emoji} *${item.text} — Cumple de ${cumplePerson.text.split(' ')[0]}*`:`${emoji} *${item.text}*`;
+  // Calendar download link via invite URL with cal flag
+  const calLink=`${inviteLink}&cal=1`;
+  const parts=[
+    titleLine,
+    timeStr,
+    locName?`📍 ${locName}`:'',
+    finalMapLink?`🗺️ ${finalMapLink}`:'',
+    website?`🌐 ${website.startsWith('http')?website:'https://'+website}`:'',
+    '',
+    `📲 Agregar al calendario → ${calLink}`,
+    `💜 Guardar en Kami → ${inviteLink}`,
+    '',
+    '_vía kami 🌸_'
+  ].filter(s=>s!==undefined);
+  // Remove consecutive empty strings
+  const msg=parts.join('\n').replace(/\n\n\n+/g,'\n\n').trim();
   sendWA(msg);
 }
 
@@ -1502,8 +1530,10 @@ function openEdit(e,id,c){
     }
   }
   if(needLoc){
-    const{loc,guest}=parseLocation(item.location);
-    const{locName,mapsLink,website}=parseLocationFull(loc);
+    // Strip @@cumpleId before parsing
+    const rawLoc=item.location?item.location.split('@@')[0]:'';
+    const{loc,guest}=parseLocation(rawLoc);
+    const{locName,mapsLink,website}=parseLocationFull(loc||rawLoc||null);
     document.getElementById('editLocation').value=locName||'';
     document.getElementById('editMapsLink').value=mapsLink||'';
     document.getElementById('editWebLink').value=website||'';
@@ -1527,10 +1557,19 @@ async function saveEdit(){
   const isCumple=c==='cumples';
   const dateEl=(!isCumple&&document.getElementById('editDate').style.display!='none')?document.getElementById('editDate'):document.getElementById('editDateSimple');
   const date=NEED_DATE.includes(c)?(dateEl.value||null):null;
-  let location=NEED_LOC.includes(c)?getLocationStr('edit'):null;
-  if(c==='ejercicio'){
-    const guest=document.getElementById('editGuest').value.trim();
-    if(guest) location=(location?location:'')+'||'+guest;
+  let location=null;
+  if(NEED_LOC.includes(c)){
+    location=getLocationStr('edit');
+    // Preserve @@cumpleId if it existed
+    const origItem=(items[c]||[]).find(i=>i.id===editingId);
+    if(origItem?.location&&origItem.location.includes('@@')){
+      const cumpleIdPart=origItem.location.split('@@')[1];
+      if(cumpleIdPart)location=(location||'')+'@@'+cumpleIdPart;
+    }
+    if(c==='ejercicio'){
+      const guest=document.getElementById('editGuest').value.trim();
+      if(guest)location=(location||'')+'||'+guest;
+    }
   }
   const btn=document.getElementById('editBtn');
   btn.textContent='Guardando...';btn.disabled=true;
