@@ -710,11 +710,15 @@ function addToCalendar(item,c){
   const pad=n=>String(n).padStart(2,'0');
   const fmt=d=>`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
   const start=fmt(d);
-  const end=fmt(new Date(d.getTime()+60*60*1000)); // +1 hora
-  const{locName}=parseLocationFull(item.location?item.location.split('||')[0]:null);
+  const end=fmt(new Date(d.getTime()+60*60*1000));
+  // Properly strip @@ and || before parsing location
+  const rawLoc=item.location?item.location.split('@@')[0].split('||')[0]:'';
+  const{locName,lat,lon,mapsLink}=parseLocationFull(rawLoc||null);
+  const finalMapLink=mapsLink||mapsUrl(lat,lon,locName);
   const{note}=parseRelease(item.location||'');
   const desc=note||LABELS[c]||'';
-  const ics=`BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Kami//EN\nBEGIN:VEVENT\nUID:${item.id}@kami\nDTSTART:${start}\nDTEND:${end}\nSUMMARY:${item.text}\nDESCRIPTION:${desc}\n${locName?'LOCATION:'+locName+'\n':''}BEGIN:VALARM\nTRIGGER:-PT30M\nACTION:DISPLAY\nDESCRIPTION:Recordatorio\nEND:VALARM\nEND:VEVENT\nEND:VCALENDAR`;
+  const locationLine=locName?`LOCATION:${locName}${finalMapLink?' ('+finalMapLink+')':''}\n`:'';
+  const ics=`BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Kami//EN\nBEGIN:VEVENT\nUID:${item.id}@kami\nDTSTART:${start}\nDTEND:${end}\nSUMMARY:${item.text}\nDESCRIPTION:${desc}\n${locationLine}BEGIN:VALARM\nTRIGGER:-PT30M\nACTION:DISPLAY\nDESCRIPTION:Recordatorio\nEND:VALARM\nEND:VEVENT\nEND:VCALENDAR`;
   const blob=new Blob([ics],{type:'text/calendar'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -1413,10 +1417,23 @@ function shareItem(id,c){
   const cumplePerson=cumpleId?(items.cumples||[]).find(i=>i.id===cumpleId):null;
   const calLink=`${inviteLink}&cal=1`;
 
+  const FRASES=[
+    '🎉 Buena vibra requerida, regalo opcional',
+    '🚨 Asistencia obligatoria, excusas no aceptadas',
+    '🥳 El único plan que no puedes cancelar',
+    '😂 No faltes o te contamos todo sin ti',
+    '✨ Ven a hacer memoria con nosotras',
+    '💅 Dress code: felicidad y antojo',
+    '🎂 Spoiler: habrá pastel',
+    '💜 Tu presencia es el mejor regalo',
+  ];
+  const frase=cumplePerson?FRASES[Math.floor(Math.random()*FRASES.length)]:'';
+
   // Build message line by line like ejercicio
   let msg='';
   if(cumplePerson){
     msg+=`🎉 *Vamos a celebrar a ${cumplePerson.text.split(' ')[0]}*\n`;
+    msg+=`${frase}\n`;
   } else {
     const emoji={eventos:'🎉',citas:'🤝',ejercicio:'🏃',salud:'💊'}[c]||'✨';
     msg+=`${emoji} *${item.text}*\n`;
@@ -1426,8 +1443,8 @@ function shareItem(id,c){
   else if(locName) msg+=`📍 ${locName}\n`;
   else if(finalMapLink) msg+=`📍 ${finalMapLink}\n`;
   if(website) msg+=`🌐 ${website.startsWith('http')?website:'https://'+website}\n`;
-  msg+=`\n📲 Agregar al calendario → ${calLink}`;
-  msg+=`\n💜 Guardar en Kami → ${inviteLink}`;
+  msg+=`\n📲 Agregar a tu calendario → ${calLink}`;
+  msg+=`\n💜 Guárdalo en Kami y nunca olvides nada → ${inviteLink}`;
   msg+='\n\n_vía kami 🌸_';
 
   sendWA(msg);
