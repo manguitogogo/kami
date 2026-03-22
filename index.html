@@ -292,10 +292,10 @@ Continuar con Google
 <button class="tab" data-view="salud" onclick="switchView('salud',this)"><div class="tab-dot" style="background:#e24b4a"></div>Salud</button>
 <button class="tab" data-view="cumples" onclick="switchView('cumples',this)"><div class="tab-dot" style="background:#d85a30"></div>Cumpleaños</button>
 <button class="tab" data-view="ejercicio" onclick="switchView('ejercicio',this)"><div class="tab-dot" style="background:#0f6e56"></div>Ejercicio</button>
-<button class="tab" data-view="recordatorios" onclick="switchView('recordatorios',this)"><div class="tab-dot" style="background:#534ab7"></div>Tareas</button>
+<button class="tab" data-view="recordatorios" onclick="switchView('recordatorios',this)"><div class="tab-dot" style="background:#534ab7"></div>To-Do</button>
 <button class="tab" data-view="ideas" onclick="switchView('ideas',this)"><div class="tab-dot" style="background:#888780"></div>Ideas</button>
 <button class="tab" data-view="cultura" onclick="switchView('cultura',this)"><div class="tab-dot" style="background:#C084C0"></div>Cultura</button>
-<button class="tab" data-view="bts" onclick="switchView('bts',this)" style="background:rgba(155,142,196,0.12);border-color:rgba(155,142,196,0.25)"><div class="tab-dot" style="background:#9B8EC4"></div><span style="color:#9B8EC4;font-weight:500">BTS 💜</span></button>
+<button class="tab" data-view="bts" onclick="switchView('bts',this)"><div class="tab-dot" style="background:#9B8EC4"></div><span style="color:#9B8EC4;font-weight:500">BTS 💜</span></button>
 </div>
 <div class="main" id="mainContent"></div>
 <button class="fab" onclick="openSheet()">
@@ -314,7 +314,7 @@ Continuar con Google
 <button class="cat-chip" data-cat="salud" onclick="selectCat(this,'salud')"><div class="cat-cdot" style="background:#e24b4a"></div>Salud</button>
 <button class="cat-chip" data-cat="cumples" onclick="selectCat(this,'cumples')"><div class="cat-cdot" style="background:#d85a30"></div>Cumpleaños</button>
 <button class="cat-chip" data-cat="ejercicio" onclick="selectCat(this,'ejercicio')"><div class="cat-cdot" style="background:#0f6e56"></div>Ejercicio</button>
-<button class="cat-chip" data-cat="recordatorios" onclick="selectCat(this,'recordatorios')"><div class="cat-cdot" style="background:#534ab7"></div>Tarea</button>
+<button class="cat-chip" data-cat="recordatorios" onclick="selectCat(this,'recordatorios')"><div class="cat-cdot" style="background:#534ab7"></div>To-Do</button>
 <button class="cat-chip" data-cat="ideas" onclick="selectCat(this,'ideas')"><div class="cat-cdot" style="background:#888780"></div>Idea</button>
 <button class="cat-chip" data-cat="cultura" onclick="selectCat(this,'cultura')"><div class="cat-cdot" style="background:#C084C0"></div>Cultura</button>
 <button class="cat-chip" data-cat="bts" onclick="selectCat(this,'bts')" style="background:rgba(155,142,196,0.15);border-color:rgba(155,142,196,0.3);color:#9B8EC4"><div class="cat-cdot" style="background:#9B8EC4"></div>BTS 💜</button>
@@ -465,10 +465,11 @@ const sb=supabase.createClient(SURL,SKEY);
 let user=null,view='hoy',cat='compras',items={};
 const COLORS={compras:'#1d9e75',eventos:'#ba7517',peliculas:'#7f77dd',libros:'#378add',citas:'#E8637A',salud:'#e24b4a',cumples:'#d85a30',ejercicio:'#0f6e56',recordatorios:'#534ab7',ideas:'#888780',cultura:'#C084C0',bts:'#9B8EC4'};
 const BADGES={compras:'bt',eventos:'ba',peliculas:'bpu',libros:'bb',citas:'bp',salud:'bp',cumples:'bc',ejercicio:'bt',recordatorios:'bpu',ideas:'bgr',cultura:'bpu',bts:'bpu'};
-const LABELS={compras:'Compras',eventos:'Evento',peliculas:'Película',libros:'Libro',citas:'Cita',salud:'Salud',cumples:'Cumpleaños',ejercicio:'Ejercicio',recordatorios:'Tarea',ideas:'Idea',cultura:'Cultura',bts:'BTS 💜'};
-const HINTS={compras:'¿Qué necesitas comprar?',eventos:'Nombre del evento...',peliculas:'Título de la película...',libros:'Título del libro...',citas:'¿Con quién y dónde?',salud:'Medicamento, inyección...',cumples:'Nombre de la persona...',ejercicio:'Rutina, meta, actividad...',recordatorios:'¿Qué tienes pendiente?',ideas:'Anota tu idea...',cultura:'Película, serie, libro, juego...',bts:'Nombre del álbum, single, show...'};
+const LABELS={compras:'Compras',eventos:'Evento',peliculas:'Película',libros:'Libro',citas:'Cita',salud:'Salud',cumples:'Cumpleaños',ejercicio:'Ejercicio',recordatorios:'To-Do',ideas:'Idea',cultura:'Cultura',bts:'BTS 💜'};
+const HINTS={compras:'¿Qué necesitas comprar?',eventos:'Nombre del evento...',peliculas:'Título de la película...',libros:'Título del libro...',citas:'¿Con quién y dónde?',salud:'Síntoma, medicamento, nota médica...',cumples:'Nombre de la persona...',ejercicio:'Rutina, meta, actividad...',recordatorios:'¿Qué tienes pendiente?',ideas:'Anota tu idea...',cultura:'Película, serie, libro, juego...',bts:'Nombre del álbum, single, show...'};
 const NEED_DATE=['eventos','citas','salud','cumples','recordatorios','ejercicio','cultura','bts'];
 const NEED_LOC=['eventos','citas','ejercicio','bts'];
+const SALUD_TYPES=[{key:'sintoma',label:'🤒 Síntoma'},{key:'medicamento',label:'💊 Medicamento'},{key:'nota',label:'📋 Nota médica'},{key:'resultado',label:'🧪 Resultado'}];
 
 const CULTURA_TYPES=[
   {key:'musica',label:'🎵 Música'},
@@ -513,7 +514,7 @@ function renderNavTabs(){
   nav.innerHTML=ALL_TABS.filter(t=>!hiddenTabs.has(t.key)).map((t,i)=>{
     const isBts=t.key==='bts';
     const activeClass=view===t.key?'active':'';
-    return `<button class="tab ${activeClass}" data-view="${t.key}" onclick="switchView('${t.key}',this)" ${isBts?'style="background:rgba(155,142,196,0.12);border-color:rgba(155,142,196,0.25)"':''}>
+    return `<button class="tab ${activeClass}" data-view="${t.key}" onclick="switchView('${t.key}',this)">
       <div class="tab-dot" style="background:${t.color}"></div>
       <span ${isBts?'style="color:#9B8EC4;font-weight:500"':''}>${t.label}</span>
     </button>`;
@@ -1131,6 +1132,7 @@ function render(){
 }
 
 let calExpanded=true;
+let selectedCalDate=null;
 
 function renderMiniCal(today){
   const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -1173,9 +1175,45 @@ function renderMiniCal(today){
   for(let d=1;d<=last.getDate();d++){
     const isToday=d===todayD;
     const hasEvent=eventDates.has(d);
-    grid+=`<div class="mini-cal-day${isToday?' today':''}${hasEvent?' has-event':''}" onclick="jumpToDate(${y},${m},${d})">${d}</div>`;
+    const dStr=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isSelected=selectedCalDate===dStr;
+    grid+=`<div class="mini-cal-day${isToday?' today':''}${hasEvent?' has-event':''}${isSelected&&!isToday?' selected':''}" onclick="jumpToDate(${y},${m+1},${d})" style="${isSelected&&!isToday?'background:var(--bg2);font-weight:600':''}">${d}</div>`;
   }
   grid+=`</div>`;
+
+  // Show items for selected date
+  let selectedHtml='';
+  if(selectedCalDate){
+    const mmdd=selectedCalDate.slice(5);
+    const selItems=[];
+    Object.entries(items).forEach(([c,arr])=>{
+      arr.forEach(item=>{
+        if(!item.date||item.done)return;
+        const match=c==='cumples'?item.date.slice(5)===mmdd:item.date.startsWith(selectedCalDate);
+        if(match)selItems.push({...item,cat:c});
+      });
+    });
+    if(selItems.length){
+      const months2=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      const[sy,sm,sd]=selectedCalDate.split('-');
+      const label=`${parseInt(sd)} ${months2[parseInt(sm)-1]}`;
+      selectedHtml=`<div style="margin-top:10px;border-top:0.5px solid var(--border);padding-top:8px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">${label}</div>
+        ${selItems.map(item=>{
+          const c=item.cat;
+          const color=COLORS[c]||'#888';
+          const t=item.date.includes('T')?fmtTime(item.date):'';
+          return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border)">
+            <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></div>
+            <div style="flex:1;font-size:12px;color:var(--text)">${item.text}</div>
+            ${t?`<div style="font-size:11px;color:var(--text3)">${t}</div>`:''}
+          </div>`;
+        }).join('')}
+      </div>`;
+    } else {
+      selectedHtml=`<div style="margin-top:8px;font-size:11px;color:var(--text3);text-align:center;padding-top:6px;border-top:0.5px solid var(--border)">Sin eventos ese día</div>`;
+    }
+  }
 
   return `<div class="mini-cal">
     <div class="mini-cal-header">
@@ -1183,23 +1221,22 @@ function renderMiniCal(today){
       <button class="mini-cal-toggle" onclick="calExpanded=false;render()">Ocultar ▴</button>
     </div>
     ${grid}
+    ${selectedHtml}
   </div>`;}
 
 function jumpToDate(y,m,d){
-  // Show items for that specific date — switch to hoy view with that date highlighted
   const dateStr=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-  // Find items for that day across all categories
+  const mmdd=dateStr.slice(5);
   const dayItems=[];
   Object.entries(items).forEach(([c,arr])=>{
     arr.forEach(item=>{
       if(!item.date||item.done)return;
-      const isMatch=c==='cumples'?item.date.slice(5)===dateStr.slice(5):item.date.startsWith(dateStr);
-      if(isMatch)dayItems.push({...item,cat:c});
+      const match=c==='cumples'?item.date.slice(5)===mmdd:item.date.startsWith(dateStr);
+      if(match)dayItems.push({...item,cat:c});
     });
   });
-  if(!dayItems.length)return;
-  // Switch to hoy view and scroll to top
-  switchViewTo('hoy');
+  selectedCalDate=dateStr;
+  render();
 }
 
 function renderHoy(){
@@ -1442,6 +1479,28 @@ function parseLocation(raw){
 }
 
 function renderItem(item,c,showPlan){
+  // Salud → health tracking card
+  if(c==='salud'){
+    const{subtype,note}=parseRelease(item.location||'');
+    const typeInfo=SALUD_TYPES.find(t=>t.key===subtype)||SALUD_TYPES[0];
+    const ds=item.date?`<span style="color:var(--text3)">${fmtDate(item.date)}${item.date.includes('T')?', '+fmtTime(item.date):''}</span>`:'';
+    const noteTxt=note?`<div style="font-size:11px;color:var(--text3);margin-top:2px">📝 ${note}</div>`:'';
+    const waMsg=`${typeInfo.label} — ${item.text}${item.date?'\n📅 '+fmtDate(item.date)+(item.date.includes('T')?', '+fmtTime(item.date):''):''}${note?'\n📝 '+note:''}\n\n_vía kami 🌸_`;
+    return `<div class="list-item" style="border-left:3px solid #e24b4a">
+      <div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="font-size:10px;background:rgba(226,75,74,0.12);color:#e24b4a;padding:2px 7px;border-radius:20px">${typeInfo.label}</span>
+          ${ds}
+        </div>
+        <div class="ltext ${item.done?'done':''}" style="margin-top:3px">${item.text}</div>
+        ${noteTxt}
+      </div>
+      <button class="wa-btn send" onclick="sendWAEncoded('${encodeURIComponent(waMsg)}')">WhatsApp 💚</button>
+      <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')">✏️</button>
+      <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
+    </div>`;
+  }
   // Ejercicio con invitado → card estilo WhatsApp
   if(c==='ejercicio'&&item.location&&item.location.includes('||')){
     const{loc,guest}=parseLocation(item.location);
@@ -1492,14 +1551,14 @@ function renderItem(item,c,showPlan){
   const NOTIFY_CATS=['salud','recordatorios','ideas','compras','cumples'];
   const cardBtn=INVITE_CATS.includes(c)&&!item.done?`<button class="cal-btn" onclick="openInviteCard('${item.id}','${c}')" title="Tarjeta invitación">🎨</button>`:'';
   const waBtn=INVITE_CATS.includes(c)&&!item.done
-    ?`<button class="cal-btn" onclick="shareItem('${item.id}','${c}','invite')" title="Invitar por WhatsApp" style="color:#25d366">💬</button>`
+    ?`<button class="wa-btn send" onclick="shareItem('${item.id}','${c}','invite')">WhatsApp 💚</button>`
     :NOTIFY_CATS.includes(c)&&!item.done
-    ?`<button class="cal-btn" onclick="shareItem('${item.id}','${c}','notify')" title="Avisar por WhatsApp" style="color:#25d366">💬</button>`
+    ?`<button class="wa-btn send" onclick="shareItem('${item.id}','${c}','notify')">WhatsApp 💚</button>`
     :'';
-  return `<div class="list-item"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}${ls}${placeRow}${cumpleBadge}</div>${pb}${calBtn}${cardBtn}${waBtn}<button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button><button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>`;
+  return `<div class="list-item" style="flex-wrap:wrap"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}${ls}${placeRow}${cumpleBadge}</div>${pb}${calBtn}${cardBtn}<button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button><button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>${waBtn}</div>`;
 }
 
-const SHARE_CATS=['eventos','citas','ejercicio','salud'];
+const SHARE_CATS=['eventos','citas','ejercicio'];
 
 function shareItem(id,c,mode='invite'){
   const item=(items[c]||[]).find(i=>i.id===id);
@@ -1727,6 +1786,7 @@ function selectCat(btn,c){
   document.getElementById('sheetLocationWrap').style.display=NEED_LOC.includes(c)?'block':'none';
   document.getElementById('sheetGuestWrap').style.display=c==='ejercicio'?'block':'none';
   const isRelease=c==='cultura'||c==='bts';
+  const isSalud=c==='salud';
   document.getElementById('sheetLinkWrap').style.display=isRelease?'block':'none';
   document.getElementById('sheetNoteWrap').style.display=isRelease?'block':'none';
   // Subtypes
@@ -1736,6 +1796,10 @@ function selectCat(btn,c){
     const types=c==='bts'?BTS_TYPES:CULTURA_TYPES;
     selectedSubtype=types[0].key;
     stScroll.innerHTML=types.map((t,i)=>`<button class="subtype-chip${i===0?' sel':''}" onclick="selectSubtype(this,'${t.key}')" style="${c==='bts'?'color:#9B8EC4;border-color:rgba(155,142,196,0.3)':''}">${t.label}</button>`).join('');
+    stWrap.style.display='block';
+  } else if(isSalud){
+    selectedSubtype=SALUD_TYPES[0].key;
+    stScroll.innerHTML=SALUD_TYPES.map((t,i)=>`<button class="subtype-chip${i===0?' sel':''}" onclick="selectSubtype(this,'${t.key}')" style="color:#e24b4a;border-color:rgba(226,75,74,0.3)">${t.label}</button>`).join('');
     stWrap.style.display='block';
   } else {
     stWrap.style.display='none';
@@ -1765,9 +1829,10 @@ async function saveItem(){
   const date=dateEl.value||null;
   let location=null;
   const isRelease=cat==='cultura'||cat==='bts';
-  if(isRelease){
-    const link=document.getElementById('sheetLink').value.trim()||'';
-    const note=document.getElementById('sheetNote').value.trim()||'';
+  const isSalud=cat==='salud';
+  if(isRelease||isSalud){
+    const link=isRelease?(document.getElementById('sheetLink').value.trim()||''):'';
+    const note=isRelease?(document.getElementById('sheetNote').value.trim()||''):'';
     location=`~~${selectedSubtype||''}~~${link}~~${note}`;
   } else if(NEED_LOC.includes(cat)){
     location=getLocationStr('sheet');
