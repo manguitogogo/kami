@@ -168,6 +168,18 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .toggle-switch.on::after{left:21px}
 .toggle-switch.off::after{left:3px}
 .daily-btn{display:flex;align-items:center;gap:8px;padding:11px 14px;background:#25d366;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;width:100%;margin-bottom:10px}
+.mini-cal{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px}
+.mini-cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.mini-cal-title{font-size:13px;font-weight:500;color:var(--text)}
+.mini-cal-toggle{font-size:11px;color:var(--pink);cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif}
+.mini-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.mini-cal-day-label{font-size:10px;color:var(--text3);padding:2px 0;font-weight:500}
+.mini-cal-day{font-size:12px;padding:5px 2px;border-radius:6px;cursor:pointer;position:relative;color:var(--text2)}
+.mini-cal-day.today{background:var(--pink);color:white;font-weight:600}
+.mini-cal-day.has-event::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--pink)}
+.mini-cal-day.today.has-event::after{background:white}
+.mini-cal-day.other-month{color:var(--text3);opacity:0.4}
+.mini-cal-day:hover:not(.today){background:var(--bg2)}
 .cal-btn{font-size:11px;padding:5px 11px;border-radius:6px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif}
 .cal-btn:hover{background:var(--pink-light);color:var(--pink)}
 .invite-card-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:600;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px}
@@ -280,7 +292,7 @@ Continuar con Google
 <button class="tab" data-view="salud" onclick="switchView('salud',this)"><div class="tab-dot" style="background:#e24b4a"></div>Salud</button>
 <button class="tab" data-view="cumples" onclick="switchView('cumples',this)"><div class="tab-dot" style="background:#d85a30"></div>Cumpleaños</button>
 <button class="tab" data-view="ejercicio" onclick="switchView('ejercicio',this)"><div class="tab-dot" style="background:#0f6e56"></div>Ejercicio</button>
-<button class="tab" data-view="recordatorios" onclick="switchView('recordatorios',this)"><div class="tab-dot" style="background:#534ab7"></div>Recordatorios</button>
+<button class="tab" data-view="recordatorios" onclick="switchView('recordatorios',this)"><div class="tab-dot" style="background:#534ab7"></div>Tareas</button>
 <button class="tab" data-view="ideas" onclick="switchView('ideas',this)"><div class="tab-dot" style="background:#888780"></div>Ideas</button>
 <button class="tab" data-view="cultura" onclick="switchView('cultura',this)"><div class="tab-dot" style="background:#C084C0"></div>Cultura</button>
 <button class="tab" data-view="bts" onclick="switchView('bts',this)" style="background:rgba(155,142,196,0.12);border-color:rgba(155,142,196,0.25)"><div class="tab-dot" style="background:#9B8EC4"></div><span style="color:#9B8EC4;font-weight:500">BTS 💜</span></button>
@@ -302,7 +314,7 @@ Continuar con Google
 <button class="cat-chip" data-cat="salud" onclick="selectCat(this,'salud')"><div class="cat-cdot" style="background:#e24b4a"></div>Salud</button>
 <button class="cat-chip" data-cat="cumples" onclick="selectCat(this,'cumples')"><div class="cat-cdot" style="background:#d85a30"></div>Cumpleaños</button>
 <button class="cat-chip" data-cat="ejercicio" onclick="selectCat(this,'ejercicio')"><div class="cat-cdot" style="background:#0f6e56"></div>Ejercicio</button>
-<button class="cat-chip" data-cat="recordatorios" onclick="selectCat(this,'recordatorios')"><div class="cat-cdot" style="background:#534ab7"></div>Recordatorio</button>
+<button class="cat-chip" data-cat="recordatorios" onclick="selectCat(this,'recordatorios')"><div class="cat-cdot" style="background:#534ab7"></div>Tarea</button>
 <button class="cat-chip" data-cat="ideas" onclick="selectCat(this,'ideas')"><div class="cat-cdot" style="background:#888780"></div>Idea</button>
 <button class="cat-chip" data-cat="cultura" onclick="selectCat(this,'cultura')"><div class="cat-cdot" style="background:#C084C0"></div>Cultura</button>
 <button class="cat-chip" data-cat="bts" onclick="selectCat(this,'bts')" style="background:rgba(155,142,196,0.15);border-color:rgba(155,142,196,0.3);color:#9B8EC4"><div class="cat-cdot" style="background:#9B8EC4"></div>BTS 💜</button>
@@ -453,8 +465,8 @@ const sb=supabase.createClient(SURL,SKEY);
 let user=null,view='hoy',cat='compras',items={};
 const COLORS={compras:'#1d9e75',eventos:'#ba7517',peliculas:'#7f77dd',libros:'#378add',citas:'#E8637A',salud:'#e24b4a',cumples:'#d85a30',ejercicio:'#0f6e56',recordatorios:'#534ab7',ideas:'#888780',cultura:'#C084C0',bts:'#9B8EC4'};
 const BADGES={compras:'bt',eventos:'ba',peliculas:'bpu',libros:'bb',citas:'bp',salud:'bp',cumples:'bc',ejercicio:'bt',recordatorios:'bpu',ideas:'bgr',cultura:'bpu',bts:'bpu'};
-const LABELS={compras:'Compras',eventos:'Evento',peliculas:'Película',libros:'Libro',citas:'Cita',salud:'Salud',cumples:'Cumpleaños',ejercicio:'Ejercicio',recordatorios:'Recordatorio',ideas:'Idea',cultura:'Cultura',bts:'BTS 💜'};
-const HINTS={compras:'¿Qué necesitas comprar?',eventos:'Nombre del evento...',peliculas:'Título de la película...',libros:'Título del libro...',citas:'¿Con quién y dónde?',salud:'Medicamento, inyección...',cumples:'Nombre de la persona...',ejercicio:'Rutina, meta, actividad...',recordatorios:'¿Qué quieres recordar?',ideas:'Anota tu idea...',cultura:'Película, serie, libro, juego...',bts:'Nombre del álbum, single, show...'};
+const LABELS={compras:'Compras',eventos:'Evento',peliculas:'Película',libros:'Libro',citas:'Cita',salud:'Salud',cumples:'Cumpleaños',ejercicio:'Ejercicio',recordatorios:'Tarea',ideas:'Idea',cultura:'Cultura',bts:'BTS 💜'};
+const HINTS={compras:'¿Qué necesitas comprar?',eventos:'Nombre del evento...',peliculas:'Título de la película...',libros:'Título del libro...',citas:'¿Con quién y dónde?',salud:'Medicamento, inyección...',cumples:'Nombre de la persona...',ejercicio:'Rutina, meta, actividad...',recordatorios:'¿Qué tienes pendiente?',ideas:'Anota tu idea...',cultura:'Película, serie, libro, juego...',bts:'Nombre del álbum, single, show...'};
 const NEED_DATE=['eventos','citas','salud','cumples','recordatorios','ejercicio','cultura','bts'];
 const NEED_LOC=['eventos','citas','ejercicio','bts'];
 
@@ -1118,6 +1130,78 @@ function render(){
   document.getElementById('mainContent').innerHTML=view==='hoy'?renderHoy():renderList(view);
 }
 
+let calExpanded=true;
+
+function renderMiniCal(today){
+  const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const days=['L','M','M','J','V','S','D'];
+  const y=today.getFullYear(),m=today.getMonth();
+  const first=new Date(y,m,1);
+  const last=new Date(y,m+1,0);
+  const startDay=(first.getDay()+6)%7; // Monday=0
+  const todayD=today.getDate();
+
+  // Collect all event dates this month
+  const eventDates=new Set();
+  Object.values(items).forEach(arr=>{
+    arr.forEach(item=>{
+      if(!item.date||item.done)return;
+      const d=parseLocalDate(item.date);
+      if(d.getFullYear()===y&&d.getMonth()===m)eventDates.add(d.getDate());
+      // Birthdays: match MM only
+      if(item.date&&items.cumples?.includes?.(item)){
+        const mmdd=item.date.slice(5);
+        const [mm]=mmdd.split('-');
+        if(parseInt(mm)-1===m)eventDates.add(parseInt(mmdd.split('-')[1]));
+      }
+    });
+  });
+  // Also check cumples by MM-DD
+  (items.cumples||[]).forEach(item=>{
+    if(!item.date)return;
+    const[mm,dd]=item.date.slice(5).split('-');
+    if(parseInt(mm)-1===m)eventDates.add(parseInt(dd));
+  });
+
+  if(!calExpanded){
+    return `<div class="mini-cal"><div class="mini-cal-header"><span class="mini-cal-title">📅 ${months[m]} ${y}</span><button class="mini-cal-toggle" onclick="calExpanded=true;render()">Ver calendario ▾</button></div></div>`;
+  }
+
+  let grid=`<div class="mini-cal-grid">${days.map(d=>`<div class="mini-cal-day-label">${d}</div>`).join('')}`;
+  // Empty cells before first day
+  for(let i=0;i<startDay;i++) grid+=`<div></div>`;
+  for(let d=1;d<=last.getDate();d++){
+    const isToday=d===todayD;
+    const hasEvent=eventDates.has(d);
+    grid+=`<div class="mini-cal-day${isToday?' today':''}${hasEvent?' has-event':''}" onclick="jumpToDate(${y},${m},${d})">${d}</div>`;
+  }
+  grid+=`</div>`;
+
+  return `<div class="mini-cal">
+    <div class="mini-cal-header">
+      <span class="mini-cal-title">📅 ${months[m]} ${y}</span>
+      <button class="mini-cal-toggle" onclick="calExpanded=false;render()">Ocultar ▴</button>
+    </div>
+    ${grid}
+  </div>`;}
+
+function jumpToDate(y,m,d){
+  // Show items for that specific date — switch to hoy view with that date highlighted
+  const dateStr=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  // Find items for that day across all categories
+  const dayItems=[];
+  Object.entries(items).forEach(([c,arr])=>{
+    arr.forEach(item=>{
+      if(!item.date||item.done)return;
+      const isMatch=c==='cumples'?item.date.slice(5)===dateStr.slice(5):item.date.startsWith(dateStr);
+      if(isMatch)dayItems.push({...item,cat:c});
+    });
+  });
+  if(!dayItems.length)return;
+  // Switch to hoy view and scroll to top
+  switchViewTo('hoy');
+}
+
 function renderHoy(){
   const today=new Date();
   const ts=today.toISOString().split('T')[0];
@@ -1139,9 +1223,10 @@ function renderHoy(){
     });
   });
   const cumplesTom=(items.cumples||[]).filter(c=>c.date&&c.date.slice(5)===tomsMMDD);
-  let h=`<div><div class="today-banner"><div><h2>Hola 👋</h2><p>${todayItems.length} recordatorio${todayItems.length!==1?'s':''} para hoy</p></div><div class="today-num">${todayItems.length||'0'}</div></div>
+  let h=`<div><div class="today-banner"><div><h2>Hola 👋</h2><p>${todayItems.length} evento${todayItems.length!==1?'s':''} para hoy</p></div><div class="today-num">${todayItems.length||'0'}</div></div>
   <button class="daily-btn" onclick="sendDailySummary()">📋 Enviarme mi día por WhatsApp</button>
   </div>`;
+  h+=renderMiniCal(today);
   if(todayItems.length){
     h+=`<div><div class="slabel">para hoy</div>`;
     todayItems.forEach(item=>{
@@ -1387,66 +1472,74 @@ function renderItem(item,c,showPlan){
   const{locName,lat,lon,website,phone,hours,mapsLink}=parseLocationFull(loc||rawLoc||null);
   const ds=item.date?`<div class="lmeta">${fmtDate(item.date)}${item.date.includes('T')?', '+fmtTime(item.date):''}</div>`:'';
   const finalMapsLink=mapsLink||mapsUrl(lat,lon,locName);
+  // Show name as text, links as clickable buttons — no duplicate
+  const ls=locName?`<div class="lmeta">📍 ${locName}${hours?' · 🕐 '+hours:''}</div>`:'';
   const placeLinks=[
-    finalMapsLink?`<a href="${finalMapsLink}" target="_blank" style="color:var(--pink);text-decoration:none;font-size:10px">📍 Maps</a>`:'',
+    finalMapsLink?`<a href="${finalMapsLink}" target="_blank" style="color:var(--pink);text-decoration:none;font-size:10px">🗺️ Maps</a>`:'',
     website?`<a href="${website.startsWith('http')?website:'https://'+website}" target="_blank" style="color:var(--pink);text-decoration:none;font-size:10px">🌐 Web</a>`:'',
     phone?`<a href="tel:${phone.replace(/\s/g,'')}" style="color:var(--pink);text-decoration:none;font-size:10px">📞</a>`:'',
   ].filter(Boolean);
-  const ls=locName?`<div class="lmeta">📍 ${locName}${hours?' · 🕐 '+hours:''}</div>`:'';
   const placeRow=placeLinks.length?`<div style="display:flex;gap:8px;margin-top:3px;flex-wrap:wrap">${placeLinks.join('')}</div>`:'';
   // Cumple badge
   const cumplePerson=cumpleId?(items.cumples||[]).find(i=>i.id===cumpleId):null;
   const cumpleBadge=cumplePerson?`<div style="font-size:10px;color:#d85a30;margin-top:3px">🎂 Cumple de ${cumplePerson.text.split(' ')[0]}</div>`:'';
   const pb=showPlan&&!item.done?`<button class="plan-btn" onclick="makePlan(event,'${item.id}','${c}')">hacer plan</button>`:'';
   const calBtn=NEED_DATE.includes(c)&&item.date?`<button class="cal-btn" onclick="addToCalendarById('${item.id}','${c}')" title="Calendario">📅</button>`:'';
-  const waBtn=SHARE_CATS.includes(c)&&!item.done?`<button class="cal-btn" onclick="shareItem('${item.id}','${c}')" title="WhatsApp" style="color:#25d366">💬</button>`:'';
-  const cardBtn=SHARE_CATS.includes(c)&&!item.done?`<button class="cal-btn" onclick="openInviteCard('${item.id}','${c}')" title="Tarjeta">🎨</button>`:'';
-  return `<div class="list-item"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}${ls}${placeRow}${cumpleBadge}</div>${pb}${calBtn}${waBtn}${cardBtn}<button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button><button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>`;
+  // Buttons per category:
+  // Eventos/Citas/Ejercicio → 🎨 canvas + 💬 WhatsApp invitar
+  // Others (salud, recordatorios, etc) → only 💬 WhatsApp avisar
+  const INVITE_CATS=['eventos','citas','ejercicio'];
+  const NOTIFY_CATS=['salud','recordatorios','ideas','compras','cumples'];
+  const cardBtn=INVITE_CATS.includes(c)&&!item.done?`<button class="cal-btn" onclick="openInviteCard('${item.id}','${c}')" title="Tarjeta invitación">🎨</button>`:'';
+  const waBtn=INVITE_CATS.includes(c)&&!item.done
+    ?`<button class="cal-btn" onclick="shareItem('${item.id}','${c}','invite')" title="Invitar por WhatsApp" style="color:#25d366">💬</button>`
+    :NOTIFY_CATS.includes(c)&&!item.done
+    ?`<button class="cal-btn" onclick="shareItem('${item.id}','${c}','notify')" title="Avisar por WhatsApp" style="color:#25d366">💬</button>`
+    :'';
+  return `<div class="list-item"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}${ls}${placeRow}${cumpleBadge}</div>${pb}${calBtn}${cardBtn}${waBtn}<button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button><button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button></div>`;
 }
 
 const SHARE_CATS=['eventos','citas','ejercicio','salud'];
 
-function shareItem(id,c){
+function shareItem(id,c,mode='invite'){
   const item=(items[c]||[]).find(i=>i.id===id);
   if(!item)return;
   const rawLoc=item.location?item.location.split('@@')[0].split('||')[0]:'';
   const{locName,lat,lon,mapsLink,website}=parseLocationFull(rawLoc||null);
   const finalMapLink=mapsLink||mapsUrl(lat,lon,locName);
   const timeStr=item.date&&item.date.includes('T')?`📅 ${fmtDate(item.date)}, ${fmtTime(item.date)}`:(item.date?`📅 ${fmtDate(item.date)}`:'');
-  const userName=user?.user_metadata?.full_name||user?.email||'';
-  const inviteLink=buildInviteLink(item,c,userName);
+  const inviteLink=buildInviteLink(item,c,user?.user_metadata?.full_name||'');
   const cumpleId=item.location&&item.location.includes('@@')?item.location.split('@@')[1]:null;
   const cumplePerson=cumpleId?(items.cumples||[]).find(i=>i.id===cumpleId):null;
   const calLink=`${inviteLink}&cal=1`;
-
-  const FRASES=[
-    '🎂 Spoiler: habrá pastel',
-    '💜 Tu presencia es el mejor regalo',
-    '✨ Ven a hacer memoria',
-    '🥳 El único plan que no puedes cancelar',
-    '💅 Dress code: felicidad y antojo',
-    '🎉 Buena vibra requerida, regalo opcional',
-  ];
-  const frase=cumplePerson?FRASES[Math.floor(Math.random()*FRASES.length)]:'';
-
-  // Build message line by line like ejercicio
   let msg='';
-  if(cumplePerson){
-    msg+=`🎉 *Vamos a celebrar a ${cumplePerson.text.split(' ')[0]}*\n`;
-    msg+=`${frase}\n`;
+  if(mode==='invite'){
+    const FRASES=['🎂 Spoiler: habrá pastel','💜 Tu presencia es el mejor regalo','✨ Ven a hacer memoria','🥳 El único plan que no puedes cancelar','💅 Dress code: felicidad y antojo','🎉 Buena vibra requerida, regalo opcional'];
+    const emoji={eventos:'🎉',citas:'🤝',ejercicio:'🏃'}[c]||'✨';
+    if(cumplePerson){
+      msg+=`🎉 *Vamos a celebrar a ${cumplePerson.text.split(' ')[0]}*\n`;
+      msg+=`${FRASES[Math.floor(Math.random()*FRASES.length)]}\n`;
+    } else {
+      msg+=`${emoji} *${item.text}*\n`;
+    }
+    if(timeStr)msg+=`${timeStr}\n`;
+    if(locName&&finalMapLink)msg+=`📍 ${locName} → ${finalMapLink}\n`;
+    else if(locName)msg+=`📍 ${locName}\n`;
+    else if(finalMapLink)msg+=`📍 ${finalMapLink}\n`;
+    if(website)msg+=`🌐 ${website.startsWith('http')?website:'https://'+website}\n`;
+    msg+=`\n📲 Agregar a tu calendario → ${calLink}`;
+    msg+=`\n💜 Guárdalo en Kami y nunca olvides nada → ${inviteLink}`;
+    msg+='\n\n_vía kami 🌸_';
   } else {
-    const emoji={eventos:'🎉',citas:'🤝',ejercicio:'🏃',salud:'💊'}[c]||'✨';
-    msg+=`${emoji} *${item.text}*\n`;
+    // Notify — simple, just informing someone
+    const emoji={salud:'💊',tareas:'✅',ideas:'💡',compras:'🛒',cumples:'🎂',recordatorios:'🔔'}[c]||'📌';
+    msg+=`${emoji} *${item.text}*`;
+    if(timeStr)msg+=`\n${timeStr}`;
+    if(locName&&finalMapLink)msg+=`\n📍 ${locName} → ${finalMapLink}`;
+    else if(locName)msg+=`\n📍 ${locName}`;
+    if(website)msg+=`\n🌐 ${website.startsWith('http')?website:'https://'+website}`;
+    msg+='\n\n_vía kami 🌸_';
   }
-  if(timeStr) msg+=`${timeStr}\n`;
-  if(locName&&finalMapLink) msg+=`📍 ${locName} → ${finalMapLink}\n`;
-  else if(locName) msg+=`📍 ${locName}\n`;
-  else if(finalMapLink) msg+=`📍 ${finalMapLink}\n`;
-  if(website) msg+=`🌐 ${website.startsWith('http')?website:'https://'+website}\n`;
-  msg+=`\n📲 Agregar a tu calendario → ${calLink}`;
-  msg+=`\n💜 Guárdalo en Kami y nunca olvides nada → ${inviteLink}`;
-  msg+='\n\n_vía kami 🌸_';
-
   sendWA(msg);
 }
 
