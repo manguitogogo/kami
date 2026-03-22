@@ -1197,16 +1197,25 @@ function renderMiniCal(today){
       const months2=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
       const[sy,sm,sd]=selectedCalDate.split('-');
       const label=`${parseInt(sd)} ${months2[parseInt(sm)-1]}`;
-      selectedHtml=`<div style="margin-top:10px;border-top:0.5px solid var(--border);padding-top:8px">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">${label}</div>
+      selectedHtml=`<div style="margin-top:10px;border-top:0.5px solid var(--border);padding-top:10px">
+        <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:8px">📋 ${label} — ${selItems.length} evento${selItems.length!==1?'s':''}</div>
         ${selItems.map(item=>{
           const c=item.cat;
           const color=COLORS[c]||'#888';
-          const t=item.date.includes('T')?fmtTime(item.date):'';
-          return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border)">
-            <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></div>
-            <div style="flex:1;font-size:12px;color:var(--text)">${item.text}</div>
-            ${t?`<div style="font-size:11px;color:var(--text3)">${t}</div>`:''}
+          const label2=LABELS[c]||c;
+          const t=item.date&&item.date.includes('T')?fmtTime(item.date):'';
+          const rawLoc=item.location?item.location.split('@@')[0].split('||')[0]:'';
+          const{locName}=parseLocationFull(rawLoc||null);
+          return `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border)">
+            <div style="width:3px;border-radius:3px;background:${color};flex-shrink:0;align-self:stretch"></div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:500;color:var(--text)">${item.text}</div>
+              <div style="display:flex;gap:8px;margin-top:3px;flex-wrap:wrap">
+                ${t?`<span style="font-size:11px;color:var(--text3)">🕐 ${t}</span>`:''}
+                ${locName?`<span style="font-size:11px;color:var(--text3)">📍 ${locName}</span>`:''}
+                <span style="font-size:10px;background:${color}22;color:${color};padding:1px 6px;border-radius:20px">${label2}</span>
+              </div>
+            </div>
           </div>`;
         }).join('')}
       </div>`;
@@ -1536,14 +1545,21 @@ function renderItem(item,c,showPlan){
   const cumpleBadge=cumplePerson?`<div style="font-size:10px;color:#d85a30;margin-top:3px">🎂 Cumple de ${cumplePerson.text.split(' ')[0]}</div>`:'';
   const pb=showPlan&&!item.done?`<button class="plan-btn" onclick="makePlan(event,'${item.id}','${c}')">hacer plan</button>`:'';
   const calBtn=NEED_DATE.includes(c)&&item.date?`<button class="cal-btn" onclick="addToCalendarById('${item.id}','${c}')" title="Calendario">📅</button>`:'';
-  const INVITE_CATS=['eventos','citas','ejercicio'];
-  const NOTIFY_CATS=['salud','recordatorios','ideas','compras','cumples'];
-  const cardBtn=INVITE_CATS.includes(c)&&!item.done?`<button class="cal-btn" onclick="openInviteCard('${item.id}','${c}')" title="Tarjeta">🎨</button>`:'';
-  const waBtn=INVITE_CATS.includes(c)&&!item.done
-    ?`<button class="wa-btn send" onclick="shareItem('${item.id}','${c}','invite')">Invitar por WhatsApp 💚</button>`
-    :NOTIFY_CATS.includes(c)&&!item.done
-    ?`<button class="wa-btn send" onclick="shareItem('${item.id}','${c}','notify')">Avisar por WhatsApp 💚</button>`
-    :'';
+  // Canvas solo para eventos
+  const cardBtn=c==='eventos'&&!item.done?`<button class="cal-btn" onclick="openInviteCard('${item.id}','${c}')" title="Tarjeta">🎨</button>`:'';
+  // WhatsApp buttons por categoría:
+  // eventos → Invitar
+  // citas → Avisar + Invitar (dos botones)
+  // ejercicio → ya tiene su propio card
+  // salud, recordatorios, ideas, compras, cumples, bts, cultura → ninguno
+  let waBtns='';
+  if(!item.done){
+    if(c==='eventos'){
+      waBtns=`<button class="wa-btn send" onclick="shareItem('${item.id}','${c}','invite')">Invitar 💚</button>`;
+    } else if(c==='citas'){
+      waBtns=`<button class="wa-btn send" style="background:#555;margin-right:6px" onclick="shareItem('${item.id}','${c}','notify')">Avisar 💬</button><button class="wa-btn send" onclick="shareItem('${item.id}','${c}','invite')">Invitar 💚</button>`;
+    }
+  }
   return `<div class="list-item" style="flex-wrap:wrap">
     <div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div>
     <div style="flex:1;min-width:0">
@@ -1555,7 +1571,7 @@ function renderItem(item,c,showPlan){
       <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button>
       <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
     </div>
-    ${waBtn?`<div style="width:100%;padding-left:28px;margin-top:6px">${waBtn}</div>`:''}
+    ${waBtns?`<div style="width:100%;padding-left:28px;margin-top:6px;display:flex;gap:6px">${waBtns}</div>`:''}
   </div>`;
 }
 
