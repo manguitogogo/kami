@@ -292,7 +292,7 @@ Continuar con Google
 <button class="tab" data-view="salud" onclick="switchView('salud',this)"><div class="tab-dot" style="background:#e24b4a"></div>Salud</button>
 <button class="tab" data-view="cumples" onclick="switchView('cumples',this)"><div class="tab-dot" style="background:#d85a30"></div>Cumpleaños</button>
 <button class="tab" data-view="ejercicio" onclick="switchView('ejercicio',this)"><div class="tab-dot" style="background:#0f6e56"></div>Ejercicio</button>
-<button class="tab" data-view="recordatorios" onclick="switchView('recordatorios',this)"><div class="tab-dot" style="background:#534ab7"></div>To-Do</button>
+<button class="tab" data-view="recordatorios" onclick="switchView('recordatorios',this)"><div class="tab-dot" style="background:#534ab7"></div>To-Do ✅</button>
 <button class="tab" data-view="ideas" onclick="switchView('ideas',this)"><div class="tab-dot" style="background:#888780"></div>Ideas</button>
 <button class="tab" data-view="cultura" onclick="switchView('cultura',this)"><div class="tab-dot" style="background:#C084C0"></div>Cultura</button>
 <button class="tab" data-view="bts" onclick="switchView('bts',this)"><div class="tab-dot" style="background:#9B8EC4"></div><span style="color:#9B8EC4;font-weight:500">BTS 💜</span></button>
@@ -353,8 +353,8 @@ Continuar con Google
 <input class="sheet-input" id="sheetLink" placeholder="https://..." type="url">
 </div>
 <div class="sheet-field" id="sheetNoteWrap" style="display:none">
-<label>Nota personal (opcional)</label>
-<input class="sheet-input" id="sheetNote" placeholder="ej. escuchar con Ana, ver en el cine...">
+<label id="sheetNoteLabel">Nota personal (opcional)</label>
+<textarea class="sheet-input" id="sheetNote" placeholder="ej. escuchar con Ana, ver en el cine..." rows="3" style="resize:none;font-family:'DM Sans',sans-serif"></textarea>
 </div>
 <div class="sheet-actions">
 <button class="btn-cancel" onclick="closeSheet()">Cancelar</button>
@@ -466,7 +466,7 @@ let user=null,view='hoy',cat='compras',items={};
 const COLORS={compras:'#1d9e75',eventos:'#ba7517',peliculas:'#7f77dd',libros:'#378add',citas:'#E8637A',salud:'#e24b4a',cumples:'#d85a30',ejercicio:'#0f6e56',recordatorios:'#534ab7',ideas:'#888780',cultura:'#C084C0',bts:'#9B8EC4'};
 const BADGES={compras:'bt',eventos:'ba',peliculas:'bpu',libros:'bb',citas:'bp',salud:'bp',cumples:'bc',ejercicio:'bt',recordatorios:'bpu',ideas:'bgr',cultura:'bpu',bts:'bpu'};
 const LABELS={compras:'Compras',eventos:'Evento',peliculas:'Película',libros:'Libro',citas:'Cita',salud:'Salud',cumples:'Cumpleaños',ejercicio:'Ejercicio',recordatorios:'To-Do',ideas:'Idea',cultura:'Cultura',bts:'BTS 💜'};
-const HINTS={compras:'¿Qué necesitas comprar?',eventos:'Nombre del evento...',peliculas:'Título de la película...',libros:'Título del libro...',citas:'¿Con quién y dónde?',salud:'Síntoma, medicamento, nota médica...',cumples:'Nombre de la persona...',ejercicio:'Rutina, meta, actividad...',recordatorios:'¿Qué tienes pendiente?',ideas:'Anota tu idea...',cultura:'Película, serie, libro, juego...',bts:'Nombre del álbum, single, show...'};
+const HINTS={compras:'¿Qué necesitas comprar?',eventos:'Nombre del evento...',peliculas:'Título de la película...',libros:'Título del libro...',citas:'¿Con quién y dónde?',salud:'Síntoma, medicamento, nota médica...',cumples:'Nombre de la persona...',ejercicio:'Rutina, meta, actividad...',recordatorios:'Tarea, nota, checklist...',ideas:'Anota tu idea...',cultura:'Película, serie, libro, juego...',bts:'Nombre del álbum, single, show...'};
 const NEED_DATE=['eventos','citas','salud','cumples','recordatorios','ejercicio','cultura','bts'];
 const NEED_LOC=['eventos','citas','ejercicio','bts'];
 const SALUD_TYPES=[{key:'sintoma',label:'🤒 Síntoma'},{key:'medicamento',label:'💊 Medicamento'},{key:'nota',label:'📋 Nota médica'},{key:'resultado',label:'🧪 Resultado'}];
@@ -498,7 +498,7 @@ const ALL_TABS=[
   {key:'salud',label:'Salud',color:'#e24b4a'},
   {key:'cumples',label:'Cumpleaños',color:'#d85a30'},
   {key:'ejercicio',label:'Ejercicio',color:'#0f6e56'},
-  {key:'recordatorios',label:'Recordatorios',color:'#534ab7'},
+  {key:'recordatorios',label:'To-Do ✅',color:'#534ab7'},
   {key:'ideas',label:'Ideas',color:'#888780'},
   {key:'cultura',label:'Cultura',color:'#C084C0'},
   {key:'bts',label:'BTS 💜',color:'#9B8EC4'},
@@ -898,7 +898,9 @@ function getLocationStr(key){
 
 function parseLocationFull(raw){
   if(!raw)return{loc:null,lat:null,lon:null,guest:null,locName:null,website:null,instagram:null,phone:null,hours:null,mapsLink:null};
-  const parts=raw.split('||');
+  // Strip cancelled: prefix if present
+  const cleaned=raw.startsWith('cancelled:')?raw.slice(10):raw;
+  const parts=cleaned.split('||');
   const locPart=parts[0]||null;
   const guest=parts[1]||null;
   if(!locPart)return{loc:null,lat:null,lon:null,guest,locName:null,website:null,instagram:null,phone:null,hours:null,mapsLink:null};
@@ -1206,7 +1208,7 @@ function renderMiniCal(today){
           const t=item.date&&item.date.includes('T')?fmtTime(item.date):'';
           const rawLoc=item.location?item.location.split('@@')[0].split('||')[0]:'';
           const{locName}=parseLocationFull(rawLoc||null);
-          return `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border)">
+          return `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);cursor:pointer" onclick="switchViewTo('${c}')">
             <div style="width:3px;border-radius:3px;background:${color};flex-shrink:0;align-self:stretch"></div>
             <div style="flex:1;min-width:0">
               <div style="font-size:12px;font-weight:500;color:var(--text)">${item.text}</div>
@@ -1216,6 +1218,7 @@ function renderMiniCal(today){
                 <span style="font-size:10px;background:${color}22;color:${color};padding:1px 6px;border-radius:20px">${label2}</span>
               </div>
             </div>
+            <div style="font-size:10px;color:var(--text3);align-self:center">›</div>
           </div>`;
         }).join('')}
       </div>`;
@@ -1459,6 +1462,34 @@ function renderList(c){
         ${linkedHtml}
       </div>`;
     }).join('');
+  } else if(c==='recordatorios'){
+    // To-Do: split by type — checklist items vs notes
+    const pending=arr.filter(i=>!i.done);
+    const done=arr.filter(i=>i.done);
+    const renderTodo=(item,active)=>{
+      const isNote=item.location&&item.location.startsWith('note:');
+      const noteText=isNote?item.location.slice(5):'';
+      const ds=item.date?`<div class="lmeta" style="${!active&&item.date<new Date().toISOString().split('T')[0]?'color:#e24b4a':''}">${fmtDate(item.date)}</div>`:'';
+      if(isNote){
+        return `<div class="list-item" style="flex-direction:column;align-items:stretch;border-left:3px solid #534ab7">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div>
+            <div style="flex:1"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}</div>
+            <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')">✏️</button>
+            <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
+          </div>
+          ${noteText?`<div style="margin:6px 0 2px 28px;font-size:12px;color:var(--text2);white-space:pre-wrap;background:var(--bg2);padding:8px;border-radius:8px">${noteText}</div>`:''}
+        </div>`;
+      }
+      return `<div class="list-item">
+        <div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div>
+        <div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}</div>
+        <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')">✏️</button>
+        <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
+      </div>`;
+    };
+    if(pending.length)h+=`<div>${pending.map(i=>renderTodo(i,true)).join('')}</div>`;
+    if(done.length)h+=`<div><div class="slabel">completados ✓</div>${done.map(i=>renderTodo(i,false)).join('')}</div>`;
   } else if(isRelease){
     const pending=arr.filter(i=>!i.done);
     const done=arr.filter(i=>i.done);
@@ -1549,29 +1580,32 @@ function renderItem(item,c,showPlan){
   const cardBtn=c==='eventos'&&!item.done?`<button class="cal-btn" onclick="openInviteCard('${item.id}','${c}')" title="Tarjeta">🎨</button>`:'';
   // WhatsApp buttons por categoría:
   // eventos → Invitar
-  // citas → Avisar + Invitar (dos botones)
+  // citas → Avisar + Invitar + Cancelar (dos botones WA + cancelar)
   // ejercicio → ya tiene su propio card
   // salud, recordatorios, ideas, compras, cumples, bts, cultura → ninguno
+  const isCancelled=item.location&&item.location.startsWith('cancelled:');
   let waBtns='';
-  if(!item.done){
+  if(!item.done&&!isCancelled){
     if(c==='eventos'){
       waBtns=`<button class="wa-btn send" onclick="shareItem('${item.id}','${c}','invite')">Invitar 💚</button>`;
     } else if(c==='citas'){
-      waBtns=`<button class="wa-btn send" style="background:#555;margin-right:6px" onclick="shareItem('${item.id}','${c}','notify')">Avisar 💬</button><button class="wa-btn send" onclick="shareItem('${item.id}','${c}','invite')">Invitar 💚</button>`;
+      waBtns=`<button class="wa-btn send" style="background:#555" onclick="shareItem('${item.id}','${c}','notify')">Avisar 💬</button><button class="wa-btn send" onclick="shareItem('${item.id}','${c}','invite')">Invitar 💚</button><button class="wa-btn send" style="background:#c0392b" onclick="cancelCita('${item.id}')">Cancelar cita</button>`;
     }
   }
-  return `<div class="list-item" style="flex-wrap:wrap">
+  // Cancelled state styling
+  const cancelledBadge=isCancelled?`<div style="font-size:10px;color:#c0392b;margin-top:2px;font-weight:500">❌ Cancelada</div>`:'';
+  return `<div class="list-item" style="flex-wrap:wrap${isCancelled?';opacity:0.6':''}">
     <div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div>
     <div style="flex:1;min-width:0">
-      <div class="ltext ${item.done?'done':''}">${item.text}</div>
-      ${ds}${ls}${placeRow}${cumpleBadge}
+      <div class="ltext ${item.done||isCancelled?'done':''}">${item.text}</div>
+      ${ds}${ls}${placeRow}${cumpleBadge}${cancelledBadge}
     </div>
     <div style="display:flex;align-items:center;gap:4px">
       ${pb}${calBtn}${cardBtn}
       <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button>
       <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
     </div>
-    ${waBtns?`<div style="width:100%;padding-left:28px;margin-top:6px;display:flex;gap:6px">${waBtns}</div>`:''}
+    ${waBtns?`<div style="width:100%;padding-left:28px;margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${waBtns}</div>`:''}
   </div>`;
 }
 
@@ -1676,7 +1710,24 @@ function copyInvite(encodedLink){
   navigator.clipboard.writeText(link).then(()=>alert('¡Link copiado! Compártelo con quien quieras 🔗')).catch(()=>alert(link));
 }
 
-async function toggleItem(id,c,done){await toggleItemDB(id,c,done);render();}
+async function cancelCita(id){
+  const item=(items['citas']||[]).find(i=>i.id===id);
+  if(!item)return;
+  // Build cancellation WhatsApp message
+  const timeStr=item.date&&item.date.includes('T')?`📅 ${fmtDate(item.date)}, ${fmtTime(item.date)}`:(item.date?`📅 ${fmtDate(item.date)}`:'');
+  const rawLoc=item.location?item.location.split('||')[0]:'';
+  const{locName}=parseLocationFull(rawLoc||null);
+  const locStr=locName?`📍 ${locName}`:'';
+  const msg=`Hola, tuve que cancelar:\n❌ *${item.text}*\n${timeStr}${locStr?'\n'+locStr:''}\n\nDisculpa los inconvenientes 🙏\n\n_vía kami 🌸_`;
+  // Save cancelled state
+  const newLocation='cancelled:'+(item.location||'');
+  const{error}=await sb.from('items').update({location:newLocation}).eq('id',id).eq('user_id',user.id);
+  if(error){alert('Error al cancelar: '+error.message);return;}
+  item.location=newLocation;
+  render();
+  // Open WhatsApp with cancellation message
+  sendWA(msg);
+}
 async function deleteItem(id,c){await deleteItemDB(id,c);render();}
 
 let editingId=null,editingCat=null;
@@ -1788,7 +1839,7 @@ function openSheet(c){
 
 function closeSheet(){
   document.getElementById('overlay').classList.remove('open');
-  ['sheetInput','sheetDate','sheetLocation','sheetGuest','sheetLink','sheetNote','sheetMapsLink','sheetWebLink'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['sheetInput','sheetDate','sheetLocation','sheetGuest','sheetLink','sheetNote','sheetMapsLink','sheetWebLink'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';if(el.tagName==='TEXTAREA')el.value='';}});
   const pi=document.getElementById('sheetPlaceInfo');if(pi){pi.style.display='none';pi.innerHTML='';}
   placeData.sheet=null;selectedSubtype=null;
 }
@@ -1818,6 +1869,13 @@ function selectCat(btn,c){
     selectedSubtype=SALUD_TYPES[0].key;
     stScroll.innerHTML=SALUD_TYPES.map((t,i)=>`<button class="subtype-chip${i===0?' sel':''}" onclick="selectSubtype(this,'${t.key}')" style="color:#e24b4a;border-color:rgba(226,75,74,0.3)">${t.label}</button>`).join('');
     stWrap.style.display='block';
+  } else if(c==='recordatorios'){
+    selectedSubtype='tarea';
+    stScroll.innerHTML=`<button class="subtype-chip sel" onclick="selectSubtypeTodo(this,'tarea')" style="color:#534ab7;border-color:rgba(83,74,183,0.3)">✅ Tarea</button><button class="subtype-chip" onclick="selectSubtypeTodo(this,'nota')" style="color:#534ab7;border-color:rgba(83,74,183,0.3)">📝 Nota</button>`;
+    stWrap.style.display='block';
+    document.getElementById('sheetNoteWrap').style.display='none';
+    document.getElementById('sheetNoteLabel').textContent='Contenido de la nota';
+    document.getElementById('sheetNote').placeholder='Escribe tu nota aquí...';
   } else {
     stWrap.style.display='none';
     selectedSubtype=null;
@@ -1837,6 +1895,15 @@ function selectSubtype(btn,key){
   selectedSubtype=key;
 }
 
+function selectSubtypeTodo(btn,key){
+  document.querySelectorAll('#sheetSubtypeScroll .subtype-chip').forEach(x=>x.classList.remove('sel'));
+  btn.classList.add('sel');
+  selectedSubtype=key;
+  // Show note textarea only for nota type
+  const noteWrap=document.getElementById('sheetNoteWrap');
+  noteWrap.style.display=key==='nota'?'block':'none';
+}
+
 function selectCatByKey(c){const chip=document.querySelector(`.cat-chip[data-cat="${c}"]`);if(chip)selectCat(chip,c);}
 
 async function saveItem(){
@@ -1847,10 +1914,14 @@ async function saveItem(){
   let location=null;
   const isRelease=cat==='cultura'||cat==='bts';
   const isSalud=cat==='salud';
+  const isTodo=cat==='recordatorios';
   if(isRelease||isSalud){
     const link=isRelease?(document.getElementById('sheetLink').value.trim()||''):'';
     const note=isRelease?(document.getElementById('sheetNote').value.trim()||''):'';
     location=`~~${selectedSubtype||''}~~${link}~~${note}`;
+  } else if(isTodo&&selectedSubtype==='nota'){
+    const noteContent=document.getElementById('sheetNote').value.trim()||'';
+    if(noteContent)location=`note:${noteContent}`;
   } else if(NEED_LOC.includes(cat)){
     location=getLocationStr('sheet');
     if(cat==='ejercicio'){
