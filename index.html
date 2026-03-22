@@ -1225,16 +1225,8 @@ function renderMiniCal(today){
   </div>`;}
 
 function jumpToDate(y,m,d){
-  const dateStr=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-  const mmdd=dateStr.slice(5);
-  const dayItems=[];
-  Object.entries(items).forEach(([c,arr])=>{
-    arr.forEach(item=>{
-      if(!item.date||item.done)return;
-      const match=c==='cumples'?item.date.slice(5)===mmdd:item.date.startsWith(dateStr);
-      if(match)dayItems.push({...item,cat:c});
-    });
-  });
+  // m is already 1-indexed (passed as m+1 from renderMiniCal onclick)
+  const dateStr=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
   selectedCalDate=dateStr;
   render();
 }
@@ -1544,18 +1536,27 @@ function renderItem(item,c,showPlan){
   const cumpleBadge=cumplePerson?`<div style="font-size:10px;color:#d85a30;margin-top:3px">🎂 Cumple de ${cumplePerson.text.split(' ')[0]}</div>`:'';
   const pb=showPlan&&!item.done?`<button class="plan-btn" onclick="makePlan(event,'${item.id}','${c}')">hacer plan</button>`:'';
   const calBtn=NEED_DATE.includes(c)&&item.date?`<button class="cal-btn" onclick="addToCalendarById('${item.id}','${c}')" title="Calendario">📅</button>`:'';
-  // Buttons per category:
-  // Eventos/Citas/Ejercicio → 🎨 canvas + 💬 WhatsApp invitar
-  // Others (salud, recordatorios, etc) → only 💬 WhatsApp avisar
   const INVITE_CATS=['eventos','citas','ejercicio'];
   const NOTIFY_CATS=['salud','recordatorios','ideas','compras','cumples'];
-  const cardBtn=INVITE_CATS.includes(c)&&!item.done?`<button class="cal-btn" onclick="openInviteCard('${item.id}','${c}')" title="Tarjeta invitación">🎨</button>`:'';
+  const cardBtn=INVITE_CATS.includes(c)&&!item.done?`<button class="cal-btn" onclick="openInviteCard('${item.id}','${c}')" title="Tarjeta">🎨</button>`:'';
   const waBtn=INVITE_CATS.includes(c)&&!item.done
-    ?`<button class="wa-btn send" onclick="shareItem('${item.id}','${c}','invite')">WhatsApp 💚</button>`
+    ?`<button class="wa-btn send" onclick="shareItem('${item.id}','${c}','invite')">Invitar por WhatsApp 💚</button>`
     :NOTIFY_CATS.includes(c)&&!item.done
-    ?`<button class="wa-btn send" onclick="shareItem('${item.id}','${c}','notify')">WhatsApp 💚</button>`
+    ?`<button class="wa-btn send" onclick="shareItem('${item.id}','${c}','notify')">Avisar por WhatsApp 💚</button>`
     :'';
-  return `<div class="list-item" style="flex-wrap:wrap"><div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div><div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}${ls}${placeRow}${cumpleBadge}</div>${pb}${calBtn}${cardBtn}<button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button><button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>${waBtn}</div>`;
+  return `<div class="list-item" style="flex-wrap:wrap">
+    <div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div>
+    <div style="flex:1;min-width:0">
+      <div class="ltext ${item.done?'done':''}">${item.text}</div>
+      ${ds}${ls}${placeRow}${cumpleBadge}
+    </div>
+    <div style="display:flex;align-items:center;gap:4px">
+      ${pb}${calBtn}${cardBtn}
+      <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')" title="Editar">✏️</button>
+      <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
+    </div>
+    ${waBtn?`<div style="width:100%;padding-left:28px;margin-top:6px">${waBtn}</div>`:''}
+  </div>`;
 }
 
 const SHARE_CATS=['eventos','citas','ejercicio'];
