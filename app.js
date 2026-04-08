@@ -1537,7 +1537,11 @@ async function saveEdit(){
   closeEdit();
   render();
 }
-function sendWA(msg){window.open(`https://wa.me/?text=${msg}`,'_blank');}
+function sendWA(msg){
+  // Encode but restore 4-byte emojis — iOS WhatsApp shows ◆ for percent-encoded emojis
+  const encoded=encodeURIComponent(msg).replace(/%F0(%[89AB][0-9A-F])(%[89AB][0-9A-F])(%[89AB][0-9A-F])/gi,(m,a,b,c)=>decodeURIComponent('%F0'+a+b+c));
+  window.open(`https://wa.me/?text=${encoded}`,'_blank');
+}
 function sendWAEncoded(encodedMsg){window.open(`https://wa.me/?text=${encodedMsg}`,'_blank');}
 
 function makePlan(e,id,c){
