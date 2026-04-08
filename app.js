@@ -969,72 +969,29 @@ function renderHoy(){
 // ── VISTA: AGENDA ────────────────────────────────────────────
 
 function renderAgenda(){
-  // Recopilar items de agenda (eventos + citas + cumples) con fecha
-  const agendaCats=['eventos','citas','cumples'];
-  let allItems=[];
-
-  agendaCats.forEach(c=>{
-    (items[c]||[]).forEach(item=>{
-      if(!item.date||item.done)return;
-      let sortDate;
-      if(c==='cumples'){
-        sortDate=nextBirthdayDate(item.date);
-        if(!sortDate)return;
-      } else {
-        sortDate=parseLocalDate(item.date);
-      }
-      allItems.push({...item,_cat:c,_sortDate:sortDate});
-    });
-  });
-
-  // Filtro
-  if(agendaFilter!=='todos') allItems=allItems.filter(i=>i._cat===agendaFilter);
-
-  // Ordenar por fecha
-  allItems.sort((a,b)=>a._sortDate-b._sortDate);
-
-  // Separar pasados y futuros
-  const now=new Date();
-  const future=allItems.filter(i=>i._sortDate>=now);
-  const past=allItems.filter(i=>i._sortDate<now);
-
+  // Selector de categoría a mostrar
   const chipStyle=(key)=>{
     const active=agendaFilter===key;
-    return `class="agenda-chip${active?' sel':''}" data-f="${key}" onclick="agendaFilter='${key}';render()"`;
+    return `class="agenda-chip${active?' sel':''}" data-f="${key}" onclick="agendaFilter='${key}';agendaSwitchCat();"`;
   };
+
+  // Categoría activa para renderList
+  const activeCat=agendaFilter==='todos'?'eventos':agendaFilter;
 
   let h=`<div style="display:flex;flex-direction:column;gap:10px">
     <div class="agenda-filter-bar">
-      <button ${chipStyle('todos')}>Todos</button>
-      <button ${chipStyle('eventos')}>📅 Eventos</button>
+      <button ${chipStyle('todos')}>📅 Eventos</button>
       <button ${chipStyle('citas')}>🤝 Citas</button>
       <button ${chipStyle('cumples')}>🎂 Cumpleaños</button>
-    </div>`;
-
-  if(!future.length&&!past.length){
-    h+=`<div class="empty"><div style="font-size:28px">📅</div><p>Sin eventos en la agenda.<br>Toca + para agregar.</p></div>`;
-  } else {
-    if(future.length){
-      // Agrupar por mes
-      const byMonth=groupByMonth(future);
-      Object.entries(byMonth).forEach(([monthKey,monthItems])=>{
-        h+=`<div class="agenda-month-label">${monthKey}</div>`;
-        monthItems.forEach(item=>{
-          h+=renderAgendaItem(item,item._cat);
-        });
-      });
-    }
-    if(past.length){
-      h+=`<div style="margin-top:8px"><div class="slabel">pasados</div>`;
-      [...past].reverse().slice(0,5).forEach(item=>{
-        h+=renderAgendaItem(item,item._cat,true);
-      });
-      h+=`</div>`;
-    }
-  }
-
-  h+=`</div>`;
+    </div>
+    ${renderList(activeCat)}
+  </div>`;
   return h;
+}
+
+function agendaSwitchCat(){
+  // Preserva eventoFilter y eventoView al cambiar de chip
+  render();
 }
 
 function groupByMonth(sortedItems){
@@ -1080,96 +1037,21 @@ function renderAgendaItem(item,c,isPast=false){
 // ── VISTA: TO-DO ─────────────────────────────────────────────
 
 function renderTodo(){
-  const filterChip=(key,label)=>`<button class="todo-chip${todoFilter===key?' sel':''}" onclick="todoFilter='${key}';render()">${label}</button>`;
-
-  let h=`<div style="display:flex;flex-direction:column;gap:10px">
-    <div class="todo-filter-bar">
-      ${filterChip('todos','Todos')}
-      ${filterChip('personal','🏠 Personal')}
-      ${filterChip('laboral','💼 Laboral')}
-    </div>`;
-
-  // Tareas y notas (recordatorios)
-  const getTodoCat=item=>{
-    const loc=item.location||'';
-    if(loc.startsWith('laboral:'))return 'laboral';
-    return 'personal';
-  };
-  const allTodos=items.recordatorios||[];
-  const filtered=todoFilter==='todos'?allTodos:allTodos.filter(i=>getTodoCat(i)===todoFilter);
-  const pendingTodos=filtered.filter(i=>!i.done);
-  const doneTodos=filtered.filter(i=>i.done);
-
-  // Ideas (no tienen filtro personal/laboral)
-  const allIdeas=items.ideas||[];
-  const pendingIdeas=todoFilter==='todos'?allIdeas.filter(i=>!i.done):[];
-  const doneIdeas=todoFilter==='todos'?allIdeas.filter(i=>i.done):[];
-
-  // Compras (no tienen filtro personal/laboral)
-  const allCompras=items.compras||[];
-  const pendingCompras=todoFilter==='todos'?allCompras.filter(i=>!i.done):[];
-  const doneCompras=todoFilter==='todos'?allCompras.filter(i=>i.done):[];
-
-  const renderTodoItem=(item,active,c)=>{
-    const loc=item.location||'';
-    const locStripped=loc.startsWith('laboral:')?loc.slice(8):loc.startsWith('personal:')?loc.slice(9):loc;
-    const isNote=locStripped.startsWith('note:');
-    const noteText=isNote?locStripped.slice(5):'';
-    const itemCat=getTodoCat(item);
-    const catBadge=c==='recordatorios'?`<span style="font-size:9px;color:var(--text3);margin-left:4px">${itemCat==='laboral'?'💼':'🏠'}</span>`:'';
-    const color=COLORS[c]||'#888';
-    const ds=item.date?`<div class="lmeta" style="${active&&item.date<new Date().toISOString().split('T')[0]?'color:#e24b4a':''}">${fmtDate(item.date)}</div>`:'';
-    const borderStyle=c==='compras'?'border-left:3px solid #1d9e75':'';
-    if(isNote){
-      return `<div class="list-item" style="flex-direction:column;align-items:stretch;border-left:3px solid #534ab7">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div>
-          <div style="flex:1"><div class="ltext ${item.done?'done':''}">${item.text}${catBadge}</div>${ds}</div>
-          <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')">✏️</button>
-          <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
-        </div>
-        ${noteText?`<div style="margin:6px 0 2px 28px;font-size:12px;color:var(--text2);white-space:pre-wrap;background:var(--bg2);padding:8px;border-radius:8px">${noteText}</div>`:''}
-      </div>`;
-    }
-    return `<div class="list-item" style="${borderStyle}">
-      <div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div>
-      <div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}${catBadge}</div>${ds}</div>
-      <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')">✏️</button>
-      <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
-    </div>`;
-  };
-
-  // Sección Tareas
-  if(pendingTodos.length||doneTodos.length||(!pendingTodos.length&&todoFilter!=='todos')){
-    h+=`<div><div class="slabel">tareas</div>`;
-    if(pendingTodos.length) h+=pendingTodos.map(i=>renderTodoItem(i,true,'recordatorios')).join('');
-    else h+=`<div class="empty" style="padding:20px 0"><p>Sin tareas${todoFilter!=='todos'?' en esta categoría':''} ✓</p></div>`;
-    if(doneTodos.length) h+=`<div style="margin-top:4px"><div class="slabel">completados ✓</div>${doneTodos.map(i=>renderTodoItem(i,false,'recordatorios')).join('')}</div>`;
-    h+=`</div>`;
-  }
-
-  // Sección Compras (solo en filtro "todos")
-  if(todoFilter==='todos'&&(pendingCompras.length||doneCompras.length)){
-    h+=`<div><div class="slabel">compras</div>`;
-    if(pendingCompras.length) h+=pendingCompras.map(i=>renderTodoItem(i,true,'compras')).join('');
-    if(doneCompras.length) h+=`<div style="margin-top:4px"><div class="slabel">comprado ✓</div>${doneCompras.map(i=>renderTodoItem(i,false,'compras')).join('')}</div>`;
-    h+=`</div>`;
-  }
-
-  // Sección Ideas (solo en filtro "todos")
-  if(todoFilter==='todos'&&(pendingIdeas.length||doneIdeas.length)){
-    h+=`<div><div class="slabel">ideas 💡</div>`;
-    if(pendingIdeas.length) h+=pendingIdeas.map(i=>renderTodoItem(i,true,'ideas')).join('');
-    if(doneIdeas.length) h+=`<div style="margin-top:4px"><div class="slabel">guardadas ✓</div>${doneIdeas.map(i=>renderTodoItem(i,false,'ideas')).join('')}</div>`;
-    h+=`</div>`;
-  }
-
-  if(!pendingTodos.length&&!pendingCompras.length&&!pendingIdeas.length&&!doneTodos.length&&!doneCompras.length&&!doneIdeas.length){
-    h+=`<div class="empty"><div style="font-size:28px">✦</div><p>Nada aquí todavía.<br>Toca + para agregar.</p></div>`;
-  }
-
-  h+=`</div>`;
-  return h;
+  // Usa exactamente el renderList original de recordatorios — no duplica lógica
+  return `<div style="display:flex;flex-direction:column;gap:0">
+    <div style="margin-bottom:4px">
+      <div class="slabel" style="margin-bottom:6px">tareas</div>
+      ${renderList('recordatorios')}
+    </div>
+    <div style="margin-top:8px">
+      <div class="slabel" style="margin-bottom:6px">compras</div>
+      ${renderList('compras')}
+    </div>
+    <div style="margin-top:8px">
+      <div class="slabel" style="margin-bottom:6px">ideas 💡</div>
+      ${renderList('ideas')}
+    </div>
+  </div>`;
 }
 
 // ── VISTA: MÁS ───────────────────────────────────────────────
