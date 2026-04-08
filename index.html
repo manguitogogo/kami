@@ -1123,6 +1123,8 @@ async function toggleItemDB(id,category,done){
   const item=(items[category]||[]).find(i=>i.id===id);
   if(item)item.done=!done;
 }
+async function toggleItem(id,c,done){await toggleItemDB(id,c,done);render();}
+async function deleteItem(id,c){await deleteItemDB(id,c);render();}
 
 async function deleteItemDB(id,category){
   await sb.from('items').delete().eq('id',id).eq('user_id',user.id);
@@ -1135,55 +1137,74 @@ function render(){
 
 let calExpanded=true;
 let selectedCalDate=null;
+let calMonth=null; // {y,m} — null = mes actual
+
+function calNav(dir){
+  const now=new Date();
+  const base=calMonth||{y:now.getFullYear(),m:now.getMonth()};
+  let nm=base.m+dir,ny=base.y;
+  if(nm>11){nm=0;ny++;}
+  if(nm<0){nm=11;ny--;}
+  calMonth={y:ny,m:nm};
+  selectedCalDate=null;
+  render();
+}
 
 function renderMiniCal(today){
   const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const days=['L','M','M','J','V','S','D'];
-  const y=today.getFullYear(),m=today.getMonth();
+  const y=calMonth?calMonth.y:today.getFullYear();
+  const m=calMonth?calMonth.m:today.getMonth();
+  const isCurrentMonth=today.getFullYear()===y&&today.getMonth()===m;
   const first=new Date(y,m,1);
   const last=new Date(y,m+1,0);
-  const startDay=(first.getDay()+6)%7; // Monday=0
-  const todayD=today.getDate();
+  const startDay=(first.getDay()+6)%7;
+  const todayD=isCurrentMonth?today.getDate():-1;
 
-  // Collect all event dates this month
-  const eventDates=new Set();
-  Object.values(items).forEach(arr=>{
+  // Collect event dates with colors
+  const eventDates=new Map();
+  Object.entries(items).forEach(([c,arr])=>{
+    const color=COLORS[c]||'#888';
     arr.forEach(item=>{
       if(!item.date||item.done)return;
-      const d=parseLocalDate(item.date);
-      if(d.getFullYear()===y&&d.getMonth()===m)eventDates.add(d.getDate());
-      // Birthdays: match MM only
-      if(item.date&&items.cumples?.includes?.(item)){
-        const mmdd=item.date.slice(5);
-        const [mm]=mmdd.split('-');
-        if(parseInt(mm)-1===m)eventDates.add(parseInt(mmdd.split('-')[1]));
+      let dd=null;
+      if(c==='cumples'){
+        const[mm,d]=item.date.slice(5).split('-');
+        if(parseInt(mm)-1===m)dd=parseInt(d);
+      } else {
+        const d=parseLocalDate(item.date);
+        if(d.getFullYear()===y&&d.getMonth()===m)dd=d.getDate();
+      }
+      if(dd){
+        if(!eventDates.has(dd))eventDates.set(dd,[]);
+        if(!eventDates.get(dd).includes(color))eventDates.get(dd).push(color);
       }
     });
   });
-  // Also check cumples by MM-DD
-  (items.cumples||[]).forEach(item=>{
-    if(!item.date)return;
-    const[mm,dd]=item.date.slice(5).split('-');
-    if(parseInt(mm)-1===m)eventDates.add(parseInt(dd));
-  });
 
+  const navBtn=`style="font-size:15px;padding:0 6px;background:none;border:none;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif"`;
   if(!calExpanded){
-    return `<div class="mini-cal"><div class="mini-cal-header"><span class="mini-cal-title">📅 ${months[m]} ${y}</span><button class="mini-cal-toggle" onclick="calExpanded=true;render()">Ver calendario ▾</button></div></div>`;
+    return `<div class="mini-cal"><div class="mini-cal-header">
+      <button ${navBtn} onclick="calNav(-1)">◀</button>
+      <span class="mini-cal-title" style="flex:1;text-align:center">📅 ${months[m]} ${y}</span>
+      <button ${navBtn} onclick="calNav(1)">▶</button>
+      <button class="mini-cal-toggle" onclick="calExpanded=true;render()" style="margin-left:6px">Ver ▾</button>
+    </div></div>`;
   }
 
   let grid=`<div class="mini-cal-grid">${days.map(d=>`<div class="mini-cal-day-label">${d}</div>`).join('')}`;
-  // Empty cells before first day
   for(let i=0;i<startDay;i++) grid+=`<div></div>`;
   for(let d=1;d<=last.getDate();d++){
     const isToday=d===todayD;
-    const hasEvent=eventDates.has(d);
+    const colors=eventDates.get(d)||[];
     const dStr=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const isSelected=selectedCalDate===dStr;
-    grid+=`<div class="mini-cal-day${isToday?' today':''}${hasEvent?' has-event':''}${isSelected&&!isToday?' selected':''}" onclick="jumpToDate(${y},${m+1},${d})" style="${isSelected&&!isToday?'background:var(--bg2);font-weight:600':''}">${d}</div>`;
+    const dots=colors.length?`<div style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);display:flex;gap:1px">${colors.slice(0,3).map(col=>`<div style="width:4px;height:4px;border-radius:50%;background:${isToday?'white':col}"></div>`).join('')}</div>`:'';
+    grid+=`<div class="mini-cal-day${isToday?' today':''}${isSelected&&!isToday?' selected':''}" onclick="jumpToDate(${y},${m+1},${d})" style="position:relative;${isSelected&&!isToday?'background:var(--bg2);font-weight:600':''}">${d}${dots}</div>`;
   }
   grid+=`</div>`;
 
-  // Show items for selected date
+  // Selected date items
   let selectedHtml='';
   if(selectedCalDate){
     const mmdd=selectedCalDate.slice(5);
@@ -1198,7 +1219,7 @@ function renderMiniCal(today){
     if(selItems.length){
       const months2=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
       const[sy,sm,sd]=selectedCalDate.split('-');
-      const label=`${parseInt(sd)} ${months2[parseInt(sm)-1]}`;
+      const label=`${parseInt(sd)} ${months2[parseInt(sm)-1]} ${sy}`;
       selectedHtml=`<div style="margin-top:10px;border-top:0.5px solid var(--border);padding-top:10px">
         <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:8px">📋 ${label} — ${selItems.length} evento${selItems.length!==1?'s':''}</div>
         ${selItems.map(item=>{
@@ -1229,13 +1250,14 @@ function renderMiniCal(today){
 
   return `<div class="mini-cal">
     <div class="mini-cal-header">
-      <span class="mini-cal-title">📅 ${months[m]} ${y}</span>
-      <button class="mini-cal-toggle" onclick="calExpanded=false;render()">Ocultar ▴</button>
+      <button ${navBtn} onclick="calNav(-1)">◀</button>
+      <span class="mini-cal-title" style="flex:1;text-align:center">📅 ${months[m]} ${y}${isCurrentMonth?' · hoy':''}</span>
+      <button ${navBtn} onclick="calNav(1)">▶</button>
+      <button class="mini-cal-toggle" onclick="calExpanded=false;render()" style="margin-left:6px">Ocultar ▴</button>
     </div>
     ${grid}
     ${selectedHtml}
   </div>`;}
-
 function jumpToDate(y,m,d){
   // m is already 1-indexed (passed as m+1 from renderMiniCal onclick)
   const dateStr=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -1728,7 +1750,6 @@ async function cancelCita(id){
   // Open WhatsApp with cancellation message
   sendWA(msg);
 }
-async function deleteItem(id,c){await deleteItemDB(id,c);render();}
 
 let editingId=null,editingCat=null;
 
@@ -1754,8 +1775,10 @@ function openEdit(e,id,c){
     }
   }
   if(needLoc){
-    // Strip @@cumpleId before parsing
-    const rawLoc=item.location?item.location.split('@@')[0]:'';
+    // Strip cancelled: and @@ before parsing
+    const locRaw=item.location||'';
+    const locNoCancelled=locRaw.startsWith('cancelled:')?locRaw.slice(10):locRaw;
+    const rawLoc=locNoCancelled.split('@@')[0];
     const{loc,guest}=parseLocation(rawLoc);
     const{locName,mapsLink,website}=parseLocationFull(loc||rawLoc||null);
     document.getElementById('editLocation').value=locName||'';
@@ -1781,10 +1804,20 @@ async function saveEdit(){
   const isCumple=c==='cumples';
   const dateEl=(!isCumple&&document.getElementById('editDate').style.display!='none')?document.getElementById('editDate'):document.getElementById('editDateSimple');
   const date=NEED_DATE.includes(c)?(dateEl.value||null):null;
+  const origItem=(items[c]||[]).find(i=>i.id===editingId);
+  const wasCancelled=origItem?.location?.startsWith('cancelled:');
   let location=null;
-  if(NEED_LOC.includes(c)){
+  if(c==='salud'){
+    // Keep existing subtype from original, just update text
+    const origLoc=origItem?.location||'';
+    location=origLoc||null;
+  } else if(c==='recordatorios'){
+    // Keep existing note if any
+    const origLoc=origItem?.location||'';
+    location=origLoc.startsWith('note:')?origLoc:null;
+  } else if(NEED_LOC.includes(c)){
     location=getLocationStr('edit');
-    const origItem=(items[c]||[]).find(i=>i.id===editingId);
+    // Preserve @@cumpleId
     if(origItem?.location&&origItem.location.includes('@@')){
       const cumpleIdPart=origItem.location.split('@@')[1];
       if(cumpleIdPart)location=(location||'')+'@@'+cumpleIdPart;
@@ -1793,6 +1826,8 @@ async function saveEdit(){
       const guest=document.getElementById('editGuest').value.trim();
       if(guest)location=(location||'')+'||'+guest;
     }
+    // Re-apply cancelled: prefix if it was cancelled
+    if(wasCancelled&&location!==null)location='cancelled:'+location;
   }
   const btn=document.getElementById('editBtn');
   btn.textContent='Guardando...';btn.disabled=true;
@@ -1803,8 +1838,7 @@ async function saveEdit(){
     alert('Error: '+(error.message||error.details||JSON.stringify(error)));
     return;
   }
-  const item=(items[c]||[]).find(i=>i.id===editingId);
-  if(item){item.text=text;item.date=date;item.location=location;}
+  if(origItem){origItem.text=text;origItem.date=date;origItem.location=location;}
   placeData.edit=null;
   closeEdit();
   render();
