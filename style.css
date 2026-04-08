@@ -80,14 +80,14 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .wa-actions{display:flex;gap:7px;justify-content:flex-end}
 .wa-btn{font-size:11px;padding:6px 12px;border-radius:6px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif}
 .wa-btn.send{background:#25d366;color:white;border-color:#25d366}
-.list-item{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:11px 14px;display:flex;align-items:center;gap:10px;margin-bottom:8px;transition:transform 0.15s;cursor:pointer}
-.list-item:hover{transform:translateY(-1px)}
+.list-item{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:11px 14px;display:flex;align-items:center;gap:10px;margin-bottom:8px;transition:transform 0.15s;cursor:pointer;min-width:0;overflow:hidden}
+.list-item a{word-break:break-all;overflow-wrap:anywhere}
 .lcheck{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.15s}
 .lcheck.done{background:var(--pink);border-color:var(--pink)}
 .lcheck.done::after{content:'';width:5px;height:4px;border-left:1.5px solid white;border-bottom:1.5px solid white;transform:rotate(-45deg) translateY(-1px);display:block}
-.ltext{flex:1;font-size:13px}
+.ltext{flex:1;font-size:13px;min-width:0;word-break:break-word}
 .ltext.done{text-decoration:line-through;color:var(--text3)}
-.lmeta{font-size:11px;color:var(--text3);margin-top:2px}
+.lmeta{font-size:11px;color:var(--text3);margin-top:2px;word-break:break-word;overflow-wrap:anywhere}
 .del-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:4px;line-height:1}
 .del-btn:hover{color:var(--pink)}
 .edit-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:4px;line-height:1;opacity:0.6}
