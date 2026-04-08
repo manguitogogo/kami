@@ -40,9 +40,38 @@ let selectedSubtype=null;
 let eventoFilter=null;
 let eventoView='list';
 let statsOpen=false;
-let todoFilter='todos'; // 'todos' | 'personal' | 'laboral'
+let todoFilter='todos';
+let agendaFilter='todos';
+// masSubview: null = grid de categorías, string = vista de categoría específica
+let masSubview=null;
 
-// All available tabs definition
+// Mapa de categoría → tab que la contiene
+const CAT_TO_TAB={
+  hoy:'hoy',
+  agenda:'agenda',
+  todo:'todo',
+  mas:'mas',
+  compras:'todo',
+  recordatorios:'todo',
+  ideas:'todo',
+  eventos:'agenda',
+  citas:'agenda',
+  cumples:'agenda',
+  salud:'mas',
+  ejercicio:'mas',
+  cultura:'mas',
+  bts:'mas',
+};
+
+// Categoría default del FAB por tab
+const TAB_DEFAULT_CAT={
+  hoy:'compras',
+  agenda:'eventos',
+  todo:'recordatorios',
+  mas:'cultura',
+};
+
+// All available tabs definition (conservado para openTabsConfig)
 const ALL_TABS=[
   {key:'hoy',label:'Hoy',color:'var(--pink)',always:true},
   {key:'compras',label:'Compras',color:'#1d9e75'},
@@ -57,22 +86,19 @@ const ALL_TABS=[
   {key:'bts',label:'BTS 💜',color:'#9B8EC4'},
 ];
 
-// Load hidden tabs from localStorage
 let hiddenTabs=new Set(JSON.parse(localStorage.getItem('kamiHiddenTabs')||'[]'));
-
 function saveHiddenTabs(){localStorage.setItem('kamiHiddenTabs',JSON.stringify([...hiddenTabs]));}
 
-function renderNavTabs(){
-  const nav=document.querySelector('.nav-tabs');
-  nav.innerHTML=ALL_TABS.filter(t=>!hiddenTabs.has(t.key)).map((t,i)=>{
-    const isBts=t.key==='bts';
-    const activeClass=view===t.key?'active':'';
-    return `<button class="tab ${activeClass}" data-view="${t.key}" onclick="switchView('${t.key}',this)">
-      <div class="tab-dot" style="background:${t.color}"></div>
-      <span ${isBts?'style="color:#9B8EC4;font-weight:500"':''}>${t.label}</span>
-    </button>`;
-  }).join('');
+// Bottom nav: solo actualiza estado activo (no regenera HTML)
+function updateBottomNav(){
+  const tab=CAT_TO_TAB[view]||view;
+  document.querySelectorAll('.bnav-btn').forEach(b=>{
+    b.classList.toggle('active',b.dataset.view===tab);
+  });
 }
+
+// Stub mantenido para compatibilidad con closeTabsConfig
+function renderNavTabs(){updateBottomNav();}
 
 function openTabsConfig(){
   const list=document.getElementById('tabsList');
@@ -88,15 +114,13 @@ function openTabsConfig(){
 
 function closeTabsConfig(){
   document.getElementById('tabsScreen').classList.remove('open');
-  renderNavTabs();
+  updateBottomNav();
 }
 
 function toggleTab(key,btn){
   if(hiddenTabs.has(key)){hiddenTabs.delete(key);btn.className='toggle-switch on';}
   else{hiddenTabs.add(key);btn.className='toggle-switch off';}
   saveHiddenTabs();
-  // If current view is now hidden, go to hoy
-  if(hiddenTabs.has(view)){view='hoy';}
 }
 
 function addToCalendarById(id,c){
@@ -125,10 +149,8 @@ function drawInviteCard(item,c){
   const W=680,H=680;
   canvas.width=W;canvas.height=H;
 
-  // Detect dark mode
   const dark=window.matchMedia('(prefers-color-scheme:dark)').matches;
 
-  // Background
   const palettes={
     eventos:{bg:['#FFF8F0','#FFF0D6'],accent:'#ba7517',text:'#2a1a00'},
     citas:{bg:['#FFF0F3','#FFE0E8'],accent:'#E8637A',text:'#2a0010'},
@@ -140,45 +162,37 @@ function drawInviteCard(item,c){
   };
   const pal=palettes[c]||{bg:['#F7F6F3','#EFEDE8'],accent:'#E8637A',text:'#1a1a18'};
 
-  // Gradient background
   const grad=ctx.createLinearGradient(0,0,W,H);
   grad.addColorStop(0,pal.bg[0]);
   grad.addColorStop(1,pal.bg[1]);
   ctx.fillStyle=grad;
   ctx.fillRect(0,0,W,H);
 
-  // Decorative circle top right
   ctx.beginPath();
   ctx.arc(W+60,-60,220,0,Math.PI*2);
   ctx.fillStyle=pal.accent+'22';
   ctx.fill();
 
-  // Decorative circle bottom left
   ctx.beginPath();
   ctx.arc(-60,H+60,200,0,Math.PI*2);
   ctx.fillStyle=pal.accent+'18';
   ctx.fill();
 
-  // Accent bar top
   ctx.fillStyle=pal.accent;
   ctx.fillRect(0,0,W,8);
 
-  // Logo
   ctx.font='bold 28px serif';
   ctx.fillStyle=pal.accent;
   ctx.fillText('kami',48,72);
 
-  // Category emoji + label
   const emojis={eventos:'📅',citas:'🤝',ejercicio:'🏃',salud:'💊',cumples:'🎂',bts:'💜',cultura:'✨'};
   const emoji=emojis[c]||'✨';
   ctx.font='52px serif';
   ctx.fillText(emoji,48,170);
 
-  // Title
   const title=item.text;
   ctx.font='bold 44px sans-serif';
   ctx.fillStyle=pal.text;
-  // Word wrap
   const words=title.split(' ');
   let line='',y=250,lineH=56;
   for(const word of words){
@@ -191,13 +205,11 @@ function drawInviteCard(item,c){
   ctx.fillText(line.trim(),48,y);
   y+=lineH+20;
 
-  // Divider
   ctx.strokeStyle=pal.accent+'55';
   ctx.lineWidth=1.5;
   ctx.beginPath();ctx.moveTo(48,y);ctx.lineTo(W-48,y);ctx.stroke();
   y+=32;
 
-  // Date & time
   if(item.date){
     ctx.font='28px sans-serif';
     ctx.fillStyle=pal.accent;
@@ -207,7 +219,6 @@ function drawInviteCard(item,c){
     y+=48;
   }
 
-  // Location — strip @@ cumpleId suffix before parsing
   const rawLocCard=item.location?item.location.split('@@')[0].replace(/~~evtype:[^|~]*/,'').split('||')[0]:'';
   const{locName}=parseLocationFull(rawLocCard||null);
   if(locName){
@@ -222,7 +233,6 @@ function drawInviteCard(item,c){
     y+=48;
   }
 
-  // Cumple badge on card
   const cumpleIdCard=item.location&&item.location.includes('@@')?item.location.split('@@')[1]:null;
   const cumplePersonCard=cumpleIdCard?(items.cumples||[]).find(i=>i.id===cumpleIdCard):null;
   if(cumplePersonCard){
@@ -232,7 +242,6 @@ function drawInviteCard(item,c){
     y+=40;
   }
 
-  // Invite CTA
   const userName=user?.user_metadata?.full_name?.split(' ')[0]||'';
   const inviteLink=buildInviteLink(item,c,user?.user_metadata?.full_name||'');
   y+=8;
@@ -240,7 +249,6 @@ function drawInviteCard(item,c){
   ctx.fillStyle=pal.text+'99';
   ctx.fillText(userName?`${userName} te invita ✨`:'Te invita a un plan ✨',48,y);
 
-  // Bottom bar
   ctx.fillStyle=pal.accent;
   ctx.fillRect(0,H-6,W,6);
 }
@@ -250,7 +258,6 @@ async function shareInviteCard(){
   try{
     canvas.toBlob(async blob=>{
       if(!blob)return;
-      // Try Web Share API first (works on iOS/Android)
       if(navigator.share&&navigator.canShare){
         const file=new File([blob],'kami-invite.png',{type:'image/png'});
         if(navigator.canShare({files:[file]})){
@@ -258,7 +265,6 @@ async function shareInviteCard(){
           return;
         }
       }
-      // Fallback: download
       const url=URL.createObjectURL(blob);
       const a=document.createElement('a');
       a.href=url;a.download='kami-invite.png';
@@ -268,7 +274,6 @@ async function shareInviteCard(){
   }catch(e){console.error(e);}
 }
 
-// Calendar .ics generation
 function addToCalendar(item,c){
   if(!item.date){alert('Este item no tiene fecha.');return;}
   const d=parseLocalDate(item.date);
@@ -276,7 +281,6 @@ function addToCalendar(item,c){
   const fmt=d=>`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
   const start=fmt(d);
   const end=fmt(new Date(d.getTime()+60*60*1000));
-  // Properly strip @@ and || before parsing location
   const rawLoc=item.location?item.location.split('@@')[0].replace(/~~evtype:[^|~]*/,'').split('||')[0]:'';
   const{locName,lat,lon,mapsLink}=parseLocationFull(rawLoc||null);
   const finalMapLink=mapsLink||mapsUrl(lat,lon,locName);
@@ -292,7 +296,6 @@ function addToCalendar(item,c){
   document.body.removeChild(a);URL.revokeObjectURL(url);
 }
 
-// Daily summary for WhatsApp
 function sendDailySummary(){
   const today=new Date();
   const ts=today.toISOString().split('T')[0];
@@ -322,7 +325,6 @@ function sendDailySummary(){
     });
   }
 
-  // Pendientes rápidos
   const compras=(items.compras||[]).filter(i=>!i.done);
   if(compras.length){
     msg+=`\n\n🛒 *Pendiente comprar:*`;
@@ -333,7 +335,6 @@ function sendDailySummary(){
   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
-// Place data storage: {name, lat, lon}
 let placeData={sheet:null,edit:null,cumple:null};
 let placeTimer=null;
 
@@ -344,11 +345,9 @@ async function searchPlace(input,sugId){
   clearTimeout(placeTimer);
   placeTimer=setTimeout(async()=>{
     try{
-      // Search with countrycodes=mx for better Mexico results
       const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&accept-language=es&countrycodes=mx&addressdetails=1`);
       const data=await r.json();
       if(!data.length){
-        // Show manual entry option if no results
         sug.innerHTML=`<div class="place-item" style="color:var(--text3)" onmousedown="useManualPlace(event,'${input.id}','${sugId}')">✍️ Usar "${q}" como está</div>`;
         sug.style.display='block';
         return;
@@ -361,7 +360,6 @@ async function searchPlace(input,sugId){
         const sub=[suburb,city].filter(Boolean).join(', ');
         return `<div class="place-item" onmousedown="${handler}" ontouchstart="${handler}"><b>${p.display_name.split(',')[0]}</b><small>${sub||p.display_name.split(',').slice(1,3).join(',')}</small></div>`;
       }).join('');
-      // Add manual option at bottom
       sug.innerHTML+=`<div class="place-item" style="color:var(--text3);border-top:0.5px solid var(--border)" onmousedown="useManualPlace(event,'${input.id}','${sugId}')" ontouchstart="useManualPlace(event,'${input.id}','${sugId}')">✍️ Usar "${q}" como está</div>`;
       sug.style.display='block';
     }catch(e){sug.style.display='none';}
@@ -370,47 +368,36 @@ async function searchPlace(input,sugId){
 
 function useManualPlace(e,inputId,sugId){
   e.preventDefault();
-  const val=document.getElementById(inputId).value.trim();
-  if(!val)return;
+  const input=document.getElementById(inputId);
   const key=inputId==='sheetLocation'?'sheet':inputId==='editLocation'?'edit':'cumple';
-  placeData[key]={name:val,lat:null,lon:null};
+  const name=input.value.trim();
+  placeData[key]={name,lat:null,lon:null};
   document.getElementById(sugId).style.display='none';
 }
 
 function selectPlace(e,sugId,inputId,lat,lon,name){
   e.preventDefault();
-  const shortName=name.split(',')[0];
-  document.getElementById(inputId).value=shortName;
   const key=inputId==='sheetLocation'?'sheet':inputId==='editLocation'?'edit':'cumple';
-  placeData[key]={name:shortName,lat,lon};
+  placeData[key]={name,lat,lon};
+  document.getElementById(inputId).value=name;
   document.getElementById(sugId).style.display='none';
-  // Fetch extra place info from Overpass if it's the main sheet
-  if(inputId==='sheetLocation') fetchPlaceInfo(lat,lon,'sheetPlaceInfo');
-  else if(inputId==='editLocation') fetchPlaceInfo(lat,lon,'editPlaceInfo');
+  fetchPlaceDetails(lat,lon,sugId==='sheetPlaceSug'?'sheetPlaceInfo':'editPlaceInfo',key);
 }
 
-async function fetchPlaceInfo(lat,lon,infoId){
-  const infoEl=document.getElementById(infoId);
-  if(!infoEl)return;
-  infoEl.style.display='none';
-  infoEl.innerHTML='';
+async function fetchPlaceDetails(lat,lon,infoId,key){
   try{
-    // Search nearby OSM node for this exact place
-    const query=`[out:json][timeout:5];node(around:50,${lat},${lon})[name];out 1;`;
-    const r=await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+    const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&extratags=1`);
     const data=await r.json();
-    if(!data.elements||!data.elements.length)return;
-    const tags=data.elements[0].tags||{};
+    const tags=data.extratags||{};
+    const infoEl=document.getElementById(infoId);
+    if(!infoEl)return;
     const lines=[];
-    if(tags.cuisine)lines.push(`🍽️ ${tags.cuisine.replace(';',' · ')}`);
     if(tags.opening_hours)lines.push(`🕐 ${tags.opening_hours}`);
-    if(tags.phone||tags['contact:phone'])lines.push(`📞 <a href="tel:${(tags.phone||tags['contact:phone']).replace(/\s/g,'')}" style="color:var(--pink)">${tags.phone||tags['contact:phone']}</a>`);
-    if(tags.website||tags['contact:website'])lines.push(`🌐 <a href="${tags.website||tags['contact:website']}" target="_blank" style="color:var(--pink)">Sitio web</a>`);
-    if(tags['contact:instagram']||tags['social:instagram'])lines.push(`📸 <a href="https://instagram.com/${(tags['contact:instagram']||tags['social:instagram']).replace('@','')}" target="_blank" style="color:var(--pink)">Instagram</a>`);
+    if(tags.phone||tags['contact:phone'])lines.push(`📞 ${tags.phone||tags['contact:phone']}`);
+    if(tags.website||tags['contact:website'])lines.push(`🌐 <a href="${tags.website||tags['contact:website']}" target="_blank" style="color:var(--pink)">${tags.website||tags['contact:website']}</a>`);
+    if(tags['contact:instagram']||tags['social:instagram'])lines.push(`📸 <a href="https://instagram.com/${(tags['contact:instagram']||tags['social:instagram']).replace('@','')}" target="_blank" style="color:var(--pink)">${tags['contact:instagram']||tags['social:instagram']}</a>`);
     if(tags['contact:facebook']||tags['social:facebook'])lines.push(`👍 <a href="${tags['contact:facebook']||tags['social:facebook']}" target="_blank" style="color:var(--pink)">Facebook</a>`);
     if(!lines.length)return;
-    // Store social links in placeData
-    const key=infoId==='sheetPlaceInfo'?'sheet':'edit';
     if(placeData[key]){
       placeData[key].website=tags.website||tags['contact:website']||null;
       placeData[key].instagram=tags['contact:instagram']||tags['social:instagram']||null;
@@ -431,7 +418,6 @@ function getLocationStr(key){
   const name=(document.getElementById(inputId)?.value||'').trim();
   const mapsLink=(document.getElementById(mapsId)?.value||'').trim();
   const webLink=(document.getElementById(webId)?.value||'').trim();
-  // If user typed different name than autocomplete, discard autocomplete coords
   let obj=placeData[key]?{...placeData[key]}:null;
   if(obj&&name&&obj.name&&name!==obj.name)obj=null;
   if(!obj)obj={name,lat:null,lon:null};
@@ -444,7 +430,6 @@ function getLocationStr(key){
 
 function parseLocationFull(raw){
   if(!raw)return{loc:null,lat:null,lon:null,guest:null,locName:null,website:null,instagram:null,phone:null,hours:null,mapsLink:null};
-  // Strip cancelled: prefix if present
   const cleaned=raw.startsWith('cancelled:')?raw.slice(10):raw;
   const parts=cleaned.split('||');
   const locPart=parts[0]||null;
@@ -464,7 +449,6 @@ function mapsUrl(lat,lon,name){
   return null;
 }
 
-// Invite system
 let inviteData=null;
 
 function checkInviteParams(){
@@ -485,7 +469,6 @@ function checkInviteParams(){
 function showInviteScreen(){
   if(!inviteData)return;
   const{cat,text,date,location,mapsLink,from,calOnly}=inviteData;
-  // Build a proper location JSON for the fakeItem
   const locObj=location||mapsLink?JSON.stringify({name:location||'',lat:null,lon:null,mapsLink:mapsLink||null}):null;
   if(calOnly&&date){
     const fakeItem={id:'invite',text,date,location:locObj};
@@ -516,7 +499,6 @@ async function saveInvite(){
   const btn=document.getElementById('inviteSaveBtn');
   btn.textContent='Guardando...';btn.disabled=true;
   if(!user){
-    // Save invite data to sessionStorage and redirect to auth
     sessionStorage.setItem('pendingInvite',JSON.stringify(inviteData));
     await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.href}});
     return;
@@ -536,7 +518,6 @@ function dismissInvite(){
 }
 
 function buildInviteLink(item,c,from){
-  // Clean location: strip @@cumpleId suffix, parse JSON to get name
   const rawLoc=item.location?item.location.split('@@')[0].replace(/~~evtype:[^|~]*/,'').split('||')[0]:'';
   const{locName,lat,lon,mapsLink}=parseLocationFull(rawLoc||null);
   const finalMapLink=mapsLink||mapsUrl(lat,lon,locName);
@@ -556,7 +537,6 @@ async function init(){
   },5000);
 
   try{
-    // Check for pending invite from sessionStorage after OAuth redirect
     const pending=sessionStorage.getItem('pendingInvite');
     if(pending){
       inviteData=JSON.parse(pending);
@@ -571,11 +551,9 @@ async function init(){
     if(session){
       user=session.user;
       if(inviteData){
-        // Auto-save pending invite
         await loadItems();
         await addItem(inviteData.cat,inviteData.text,inviteData.date,inviteData.location);
         inviteData=null;
-        // Clean URL
         window.history.replaceState({},'','/');
         await showApp();
       } else {
@@ -640,7 +618,9 @@ async function showApp(){
   const av=document.getElementById('userAvatar');
   if(photo){av.innerHTML='<img src="'+photo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';}
   else{av.textContent=name.charAt(0).toUpperCase();}
-  await loadItems();renderNavTabs();render();
+  await loadItems();
+  updateBottomNav();
+  render();
 }
 
 async function sendMagicLink(){}
@@ -681,12 +661,42 @@ async function deleteItemDB(id,category){
 }
 
 function render(){
-  document.getElementById('mainContent').innerHTML=view==='hoy'?renderHoy():renderList(view);
+  const mc=document.getElementById('mainContent');
+  if(view==='hoy') mc.innerHTML=renderHoy();
+  else if(view==='agenda') mc.innerHTML=renderAgenda();
+  else if(view==='todo') mc.innerHTML=renderTodo();
+  else if(view==='mas') mc.innerHTML=renderMas();
+  else mc.innerHTML=renderList(view); // fallback para vistas legacy
 }
+
+// ── NAVEGACIÓN ──────────────────────────────────────────────
+
+function switchView(v,btn){
+  // Reset filtros si cambia de tab principal
+  if(v==='agenda')eventoFilter=null;
+  if(v==='todo')todoFilter='todos';
+  if(v==='mas')masSubview=null;
+  view=v;
+  updateBottomNav();
+  render();
+}
+
+// switchViewTo: se usa post-guardar para navegar al tab correcto
+function switchViewTo(c){
+  const tab=CAT_TO_TAB[c]||'hoy';
+  // Si el tab de destino es 'mas', activamos el subview de la categoría
+  if(tab==='mas'){masSubview=c;}
+  else{masSubview=null;}
+  view=tab;
+  updateBottomNav();
+  render();
+}
+
+// ── VISTA: HOY ──────────────────────────────────────────────
 
 let calExpanded=true;
 let selectedCalDate=null;
-let calMonth=null; // {y,m} — null = mes actual
+let calMonth=null;
 
 function calNav(dir){
   const now=new Date();
@@ -710,7 +720,6 @@ function renderMiniCal(today){
   const startDay=(first.getDay()+6)%7;
   const todayD=isCurrentMonth?today.getDate():-1;
 
-  // Collect event dates with colors
   const eventDates=new Map();
   Object.entries(items).forEach(([c,arr])=>{
     const color=COLORS[c]||'#888';
@@ -753,7 +762,6 @@ function renderMiniCal(today){
   }
   grid+=`</div>`;
 
-  // Selected date items
   let selectedHtml='';
   if(selectedCalDate){
     const mmdd=selectedCalDate.slice(5);
@@ -806,9 +814,10 @@ function renderMiniCal(today){
     </div>
     ${grid}
     ${selectedHtml}
-  </div>`;}
+  </div>`;
+}
+
 function jumpToDate(y,m,d){
-  // m is already 1-indexed (passed as m+1 from renderMiniCal onclick)
   const dateStr=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
   selectedCalDate=dateStr;
   render();
@@ -819,14 +828,13 @@ function renderHoy(){
   const ts=today.toISOString().split('T')[0];
   const tom=new Date(today);tom.setDate(tom.getDate()+1);
   const toms=tom.toISOString().split('T')[0];
-  // For birthdays compare only MM-DD (recurring every year)
-  const tomsMMDD=toms.slice(5); // "MM-DD"
+  const tomsMMDD=toms.slice(5);
   const tsMMDD=ts.slice(5);
+
   let todayItems=[];
   Object.entries(items).forEach(([c,arr])=>{
     arr.forEach(item=>{
       if(!item.date||item.done)return;
-      // Birthdays match by MM-DD only
       if(c==='cumples'){
         if(item.date.slice(5)===tsMMDD)todayItems.push({...item,cat:c});
       } else {
@@ -834,11 +842,39 @@ function renderHoy(){
       }
     });
   });
+
   const cumplesTom=(items.cumples||[]).filter(c=>c.date&&c.date.slice(5)===tomsMMDD);
-  let h=`<div><div class="today-banner"><div><h2>Hola 👋</h2><p>${todayItems.length} evento${todayItems.length!==1?'s':''} para hoy</p></div><div class="today-num">${todayItems.length||'0'}</div></div>
-  <button class="daily-btn" onclick="sendDailySummary()">📋 Enviarme mi día por WhatsApp</button>
+
+  // Próximos (siguientes 7 días, excluyendo hoy)
+  const nextWeek=new Date(today);nextWeek.setDate(nextWeek.getDate()+7);
+  let upcomingItems=[];
+  Object.entries(items).forEach(([c,arr])=>{
+    if(c==='compras'||c==='ideas'||c==='recordatorios')return;
+    arr.forEach(item=>{
+      if(!item.date||item.done)return;
+      let d;
+      if(c==='cumples'){
+        d=nextBirthdayDate(item.date);
+        if(!d)return;
+        if(d>today&&d<=nextWeek)upcomingItems.push({...item,cat:c,_sortDate:d});
+      } else {
+        d=parseLocalDate(item.date);
+        if(d>today&&d<=nextWeek)upcomingItems.push({...item,cat:c,_sortDate:d});
+      }
+    });
+  });
+  upcomingItems.sort((a,b)=>a._sortDate-b._sortDate);
+
+  let h=`<div>
+    <div class="today-banner">
+      <div><h2>Hola 👋</h2><p>${todayItems.length} evento${todayItems.length!==1?'s':''} para hoy</p></div>
+      <div class="today-num">${todayItems.length||'0'}</div>
+    </div>
+    <button class="daily-btn" onclick="sendDailySummary()" style="margin-top:10px">📋 Enviarme mi día por WhatsApp</button>
   </div>`;
+
   h+=renderMiniCal(today);
+
   if(todayItems.length){
     h+=`<div><div class="slabel">para hoy</div>`;
     todayItems.forEach(item=>{
@@ -871,18 +907,42 @@ function renderHoy(){
     });
     h+=`</div>`;
   }
+
+  if(upcomingItems.length){
+    h+=`<div><div class="slabel">próximos 7 días</div>`;
+    upcomingItems.slice(0,5).forEach(item=>{
+      const c=item.cat;
+      const color=COLORS[c]||'#888';
+      const badge=BADGES[c]||'bgr';
+      const d=item._sortDate;
+      const days2=['dom','lun','mar','mié','jue','vie','sáb'];
+      const months2=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      const dateLabel=`${days2[d.getDay()]} ${d.getDate()} ${months2[d.getMonth()]}`;
+      const t=item.date&&item.date.includes('T')?fmtTime(item.date):'';
+      h+=`<div class="reminder-item" onclick="switchViewTo('${c}')">
+        <div class="r-accent" style="background:${color}"></div>
+        <div class="r-info">
+          <div class="r-title">${item.text}</div>
+          <div class="r-meta">${dateLabel}${t?' · '+t:''}</div>
+        </div>
+        <div class="r-badge ${badge}">${LABELS[c]}</div>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+
   const pc=(items.compras||[]).filter(i=>!i.done);
   const pcu=(items.cultura||[]).filter(i=>!i.done);
   h+=`<div><div class="slabel">resumen rápido</div><div class="quick-grid">
-<div class="qcard" onclick="switchViewTo('compras')"><div class="qc-head"><span class="qc-label">Compras</span><span class="qc-count">${pc.length}</span></div>${pc.slice(0,3).map(i=>`<div class="qc-row"><div class="minicheck"></div>${i.text}</div>`).join('')||'<div style="font-size:11px;color:var(--text3)">Sin pendientes ✓</div>'}</div>
-<div class="qcard" onclick="switchViewTo('cultura')"><div class="qc-head"><span class="qc-label">Cultura</span><span class="qc-count">${pcu.length}</span></div>${pcu.slice(0,3).map(i=>`<div class="qc-row"><div class="minicheck"></div>${i.text}</div>`).join('')||'<div style="font-size:11px;color:var(--text3)">Sin pendientes ✓</div>'}</div>
-</div></div>`;
+    <div class="qcard" onclick="switchViewTo('compras')"><div class="qc-head"><span class="qc-label">Compras</span><span class="qc-count">${pc.length}</span></div>${pc.slice(0,3).map(i=>`<div class="qc-row"><div class="minicheck"></div>${i.text}</div>`).join('')||'<div style="font-size:11px;color:var(--text3)">Sin pendientes ✓</div>'}</div>
+    <div class="qcard" onclick="switchViewTo('cultura')"><div class="qc-head"><span class="qc-label">Cultura</span><span class="qc-count">${pcu.length}</span></div>${pcu.slice(0,3).map(i=>`<div class="qc-row"><div class="minicheck"></div>${i.text}</div>`).join('')||'<div style="font-size:11px;color:var(--text3)">Sin pendientes ✓</div>'}</div>
+  </div></div>`;
+
   if(cumplesTom.length){
     h+=`<div><div class="slabel">mañana — cumpleaños</div>`;
     cumplesTom.forEach(c=>{
       const firstName=c.text.split(' ')[0];
       const msg=`Hola ${firstName}!! Feliz cumpleaños, espero que la pases increíble hoy 🥳🎂✨`;
-      // Find linked events for this person
       const linkedEvents=[];
       ['eventos','citas'].forEach(cat=>{
         (items[cat]||[]).forEach(ev=>{
@@ -902,8 +962,257 @@ function renderHoy(){
     });
     h+=`</div>`;
   }
+
   return h;
 }
+
+// ── VISTA: AGENDA ────────────────────────────────────────────
+
+function renderAgenda(){
+  // Recopilar items de agenda (eventos + citas + cumples) con fecha
+  const agendaCats=['eventos','citas','cumples'];
+  let allItems=[];
+
+  agendaCats.forEach(c=>{
+    (items[c]||[]).forEach(item=>{
+      if(!item.date||item.done)return;
+      let sortDate;
+      if(c==='cumples'){
+        sortDate=nextBirthdayDate(item.date);
+        if(!sortDate)return;
+      } else {
+        sortDate=parseLocalDate(item.date);
+      }
+      allItems.push({...item,_cat:c,_sortDate:sortDate});
+    });
+  });
+
+  // Filtro
+  if(agendaFilter!=='todos') allItems=allItems.filter(i=>i._cat===agendaFilter);
+
+  // Ordenar por fecha
+  allItems.sort((a,b)=>a._sortDate-b._sortDate);
+
+  // Separar pasados y futuros
+  const now=new Date();
+  const future=allItems.filter(i=>i._sortDate>=now);
+  const past=allItems.filter(i=>i._sortDate<now);
+
+  const chipStyle=(key)=>{
+    const active=agendaFilter===key;
+    return `class="agenda-chip${active?' sel':''}" data-f="${key}" onclick="agendaFilter='${key}';render()"`;
+  };
+
+  let h=`<div style="display:flex;flex-direction:column;gap:10px">
+    <div class="agenda-filter-bar">
+      <button ${chipStyle('todos')}>Todos</button>
+      <button ${chipStyle('eventos')}>📅 Eventos</button>
+      <button ${chipStyle('citas')}>🤝 Citas</button>
+      <button ${chipStyle('cumples')}>🎂 Cumpleaños</button>
+    </div>`;
+
+  if(!future.length&&!past.length){
+    h+=`<div class="empty"><div style="font-size:28px">📅</div><p>Sin eventos en la agenda.<br>Toca + para agregar.</p></div>`;
+  } else {
+    if(future.length){
+      // Agrupar por mes
+      const byMonth=groupByMonth(future);
+      Object.entries(byMonth).forEach(([monthKey,monthItems])=>{
+        h+=`<div class="agenda-month-label">${monthKey}</div>`;
+        monthItems.forEach(item=>{
+          h+=renderAgendaItem(item,item._cat);
+        });
+      });
+    }
+    if(past.length){
+      h+=`<div style="margin-top:8px"><div class="slabel">pasados</div>`;
+      [...past].reverse().slice(0,5).forEach(item=>{
+        h+=renderAgendaItem(item,item._cat,true);
+      });
+      h+=`</div>`;
+    }
+  }
+
+  h+=`</div>`;
+  return h;
+}
+
+function groupByMonth(sortedItems){
+  const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const result={};
+  sortedItems.forEach(item=>{
+    const d=item._sortDate;
+    const key=`${months[d.getMonth()]} ${d.getFullYear()}`;
+    if(!result[key])result[key]=[];
+    result[key].push(item);
+  });
+  return result;
+}
+
+function renderAgendaItem(item,c,isPast=false){
+  const color=COLORS[c]||'#888';
+  const d=item._sortDate;
+  const today=new Date();today.setHours(0,0,0,0);
+  const isToday=d.toDateString()===new Date().toDateString();
+  const daysLeft=Math.round((d-today)/(1000*60*60*24));
+  const days2=['dom','lun','mar','mié','jue','vie','sáb'];
+  const months2=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const dateLabel=isToday?'Hoy':daysLeft===1?'Mañana':`${days2[d.getDay()]} ${d.getDate()} ${months2[d.getMonth()]}`;
+  const t=item.date&&item.date.includes('T')&&c!=='cumples'?fmtTime(item.date):'';
+  const rawLoc=item.location?item.location.split('@@')[0].replace(/~~evtype:[^|~]*/,'').split('||')[0]:'';
+  const{locName}=parseLocationFull(rawLoc||null);
+  const meta=[dateLabel,t,locName].filter(Boolean).join(' · ');
+
+  return `<div class="agenda-item${isPast?' opacity:0.5':''}">
+    <div class="agenda-dot" style="background:${color}"></div>
+    <div class="agenda-info">
+      <div class="agenda-title">${item.text}</div>
+      <div class="agenda-meta">${meta}</div>
+    </div>
+    <div style="display:flex;gap:4px;align-items:center">
+      ${isToday?`<span style="font-size:9px;background:var(--pink-light);color:var(--pink);padding:2px 6px;border-radius:20px;font-weight:500">Hoy</span>`:''}
+      <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')">✏️</button>
+      <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
+    </div>
+  </div>`;
+}
+
+// ── VISTA: TO-DO ─────────────────────────────────────────────
+
+function renderTodo(){
+  const filterChip=(key,label)=>`<button class="todo-chip${todoFilter===key?' sel':''}" onclick="todoFilter='${key}';render()">${label}</button>`;
+
+  let h=`<div style="display:flex;flex-direction:column;gap:10px">
+    <div class="todo-filter-bar">
+      ${filterChip('todos','Todos')}
+      ${filterChip('personal','🏠 Personal')}
+      ${filterChip('laboral','💼 Laboral')}
+    </div>`;
+
+  // Tareas y notas (recordatorios)
+  const getTodoCat=item=>{
+    const loc=item.location||'';
+    if(loc.startsWith('laboral:'))return 'laboral';
+    return 'personal';
+  };
+  const allTodos=items.recordatorios||[];
+  const filtered=todoFilter==='todos'?allTodos:allTodos.filter(i=>getTodoCat(i)===todoFilter);
+  const pendingTodos=filtered.filter(i=>!i.done);
+  const doneTodos=filtered.filter(i=>i.done);
+
+  // Ideas (no tienen filtro personal/laboral)
+  const allIdeas=items.ideas||[];
+  const pendingIdeas=todoFilter==='todos'?allIdeas.filter(i=>!i.done):[];
+  const doneIdeas=todoFilter==='todos'?allIdeas.filter(i=>i.done):[];
+
+  // Compras (no tienen filtro personal/laboral)
+  const allCompras=items.compras||[];
+  const pendingCompras=todoFilter==='todos'?allCompras.filter(i=>!i.done):[];
+  const doneCompras=todoFilter==='todos'?allCompras.filter(i=>i.done):[];
+
+  const renderTodoItem=(item,active,c)=>{
+    const loc=item.location||'';
+    const locStripped=loc.startsWith('laboral:')?loc.slice(8):loc.startsWith('personal:')?loc.slice(9):loc;
+    const isNote=locStripped.startsWith('note:');
+    const noteText=isNote?locStripped.slice(5):'';
+    const itemCat=getTodoCat(item);
+    const catBadge=c==='recordatorios'?`<span style="font-size:9px;color:var(--text3);margin-left:4px">${itemCat==='laboral'?'💼':'🏠'}</span>`:'';
+    const color=COLORS[c]||'#888';
+    const ds=item.date?`<div class="lmeta" style="${active&&item.date<new Date().toISOString().split('T')[0]?'color:#e24b4a':''}">${fmtDate(item.date)}</div>`:'';
+    const borderStyle=c==='compras'?'border-left:3px solid #1d9e75':'';
+    if(isNote){
+      return `<div class="list-item" style="flex-direction:column;align-items:stretch;border-left:3px solid #534ab7">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div>
+          <div style="flex:1"><div class="ltext ${item.done?'done':''}">${item.text}${catBadge}</div>${ds}</div>
+          <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')">✏️</button>
+          <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
+        </div>
+        ${noteText?`<div style="margin:6px 0 2px 28px;font-size:12px;color:var(--text2);white-space:pre-wrap;background:var(--bg2);padding:8px;border-radius:8px">${noteText}</div>`:''}
+      </div>`;
+    }
+    return `<div class="list-item" style="${borderStyle}">
+      <div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div>
+      <div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}${catBadge}</div>${ds}</div>
+      <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')">✏️</button>
+      <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
+    </div>`;
+  };
+
+  // Sección Tareas
+  if(pendingTodos.length||doneTodos.length||(!pendingTodos.length&&todoFilter!=='todos')){
+    h+=`<div><div class="slabel">tareas</div>`;
+    if(pendingTodos.length) h+=pendingTodos.map(i=>renderTodoItem(i,true,'recordatorios')).join('');
+    else h+=`<div class="empty" style="padding:20px 0"><p>Sin tareas${todoFilter!=='todos'?' en esta categoría':''} ✓</p></div>`;
+    if(doneTodos.length) h+=`<div style="margin-top:4px"><div class="slabel">completados ✓</div>${doneTodos.map(i=>renderTodoItem(i,false,'recordatorios')).join('')}</div>`;
+    h+=`</div>`;
+  }
+
+  // Sección Compras (solo en filtro "todos")
+  if(todoFilter==='todos'&&(pendingCompras.length||doneCompras.length)){
+    h+=`<div><div class="slabel">compras</div>`;
+    if(pendingCompras.length) h+=pendingCompras.map(i=>renderTodoItem(i,true,'compras')).join('');
+    if(doneCompras.length) h+=`<div style="margin-top:4px"><div class="slabel">comprado ✓</div>${doneCompras.map(i=>renderTodoItem(i,false,'compras')).join('')}</div>`;
+    h+=`</div>`;
+  }
+
+  // Sección Ideas (solo en filtro "todos")
+  if(todoFilter==='todos'&&(pendingIdeas.length||doneIdeas.length)){
+    h+=`<div><div class="slabel">ideas 💡</div>`;
+    if(pendingIdeas.length) h+=pendingIdeas.map(i=>renderTodoItem(i,true,'ideas')).join('');
+    if(doneIdeas.length) h+=`<div style="margin-top:4px"><div class="slabel">guardadas ✓</div>${doneIdeas.map(i=>renderTodoItem(i,false,'ideas')).join('')}</div>`;
+    h+=`</div>`;
+  }
+
+  if(!pendingTodos.length&&!pendingCompras.length&&!pendingIdeas.length&&!doneTodos.length&&!doneCompras.length&&!doneIdeas.length){
+    h+=`<div class="empty"><div style="font-size:28px">✦</div><p>Nada aquí todavía.<br>Toca + para agregar.</p></div>`;
+  }
+
+  h+=`</div>`;
+  return h;
+}
+
+// ── VISTA: MÁS ───────────────────────────────────────────────
+
+function renderMas(){
+  // Si hay un subview activo, renderizar esa categoría directamente
+  if(masSubview){
+    return renderMasDetail(masSubview);
+  }
+
+  const masCategories=[
+    {key:'salud',label:'Salud',icon:'💊',color:'#e24b4a'},
+    {key:'ejercicio',label:'Ejercicio',icon:'🏃',color:'#0f6e56'},
+    {key:'cultura',label:'Cultura',icon:'✨',color:'#C084C0'},
+    {key:'bts',label:'BTS 💜',icon:'💜',color:'#9B8EC4'},
+    {key:'cumples',label:'Cumpleaños',icon:'🎂',color:'#d85a30'},
+  ];
+
+  let h=`<div style="display:flex;flex-direction:column;gap:8px">
+    <div class="mas-section-title">Categorías</div>
+    <div class="mas-nav-grid">`;
+
+  masCategories.forEach(({key,label,icon,color})=>{
+    const count=(items[key]||[]).filter(i=>!i.done).length;
+    h+=`<div class="mas-nav-card" onclick="masSubview='${key}';render()">
+      <div class="mas-nav-dot" style="background:${color}"></div>
+      <span class="mas-nav-label">${icon} ${label}</span>
+      ${count?`<span class="mas-nav-count">${count}</span>`:''}
+    </div>`;
+  });
+
+  h+=`</div></div>`;
+  return h;
+}
+
+function renderMasDetail(c){
+  const label=LABELS[c]||c;
+  const color=COLORS[c]||'#888';
+  const backBtn=`<button class="mas-detail-back" onclick="masSubview=null;render()">← ${label}</button>`;
+  return `<div>${backBtn}${renderList(c)}</div>`;
+}
+
+// ── RENDER LIST (vistas legacy — sin cambios) ─────────────────
 
 function parseRelease(raw){
   if(!raw||!raw.startsWith('~~'))return{subtype:null,link:null,note:null};
@@ -926,7 +1235,6 @@ function renderReleaseCard(item,c){
   const userName=user?.user_metadata?.full_name||user?.email||'';
   const inviteLink=buildInviteLink(item,c,userName);
 
-  // Mensaje completo con fecha, hora, nota y link
   const partes=[
     `${isBts?'💜':'✨'} *${item.text}*`,
     fechaHora?`📅 ${fechaHora}`:'',
@@ -935,6 +1243,7 @@ function renderReleaseCard(item,c){
     `\n¿Lo guardamos en Kami? 👉 ${inviteLink}`
   ].filter(Boolean).join('\n');
   const waMsg=partes.trim();
+
   if(isBts){
     const emoji=typeLabel.split(' ')[0];
     const typeName=typeLabel.split(' ').slice(1).join(' ');
@@ -981,7 +1290,7 @@ function renderReleaseCard(item,c){
 function nextBirthdayDate(dateStr){
   if(!dateStr)return null;
   const today=new Date();
-  const mmdd=dateStr.slice(5); // MM-DD
+  const mmdd=dateStr.slice(5);
   const thisYear=new Date(`${today.getFullYear()}-${mmdd}`);
   if(thisYear>=today)return thisYear;
   return new Date(`${today.getFullYear()+1}-${mmdd}`);
@@ -999,7 +1308,6 @@ function renderList(c){
   const showPlan=c==='peliculas'||c==='libros';
   let h=`<div>`;
 
-  // Eventos: filter chips + view switcher
   if(c==='eventos'&&arr.length){
     const vBtn=(v,icon)=>`<button onclick="eventoView='${v}';render()" style="padding:4px 9px;border-radius:6px;border:0.5px solid var(--border2);background:${eventoView===v?'var(--text)':'var(--bg2)'};color:${eventoView===v?'var(--bg)':'var(--text2)'};cursor:pointer;font-size:12px;font-family:inherit">${icon}</button>`;
     h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -1012,7 +1320,7 @@ function renderList(c){
     if(eventoFilter) arr=arr.filter(item=>{const{evtype}=parseEventoMeta(item.location||'');return evtype===eventoFilter;});
   }
 
-  if(!arr.length)h+=`<div class="empty"><div style="font-size:28px">${c==='bts'?'💜':'✦'}</div><p>${eventoFilter?'Sin eventos de este tipo.':'Nada aquí todavía.'}<br>${eventoFilter?'':'Toca + para agregar.'}</p></div>`;
+  if(!arr.length) h+=`<div class="empty"><div style="font-size:28px">${c==='bts'?'💜':'✦'}</div><p>${eventoFilter?'Sin eventos de este tipo.':'Nada aquí todavía.'}<br>${eventoFilter?'':'Toca + para agregar.'}</p></div>`;
   else if(c==='cumples'){
     const sorted=[...arr].sort((a,b)=>{
       const da=nextBirthdayDate(a.date),db=nextBirthdayDate(b.date);
@@ -1048,19 +1356,17 @@ function renderList(c){
       </div>`;
     }).join('');
   } else if(c==='recordatorios'){
-    // Filter switch
     const fBtn=(key,label)=>`<button onclick="todoFilter='${key}';render()" style="padding:5px 14px;border-radius:20px;border:0.5px solid var(--border2);background:${todoFilter===key?'var(--text)':'var(--bg2)'};color:${todoFilter===key?'var(--bg)':'var(--text2)'};cursor:pointer;font-size:12px;font-family:inherit">${label}</button>`;
     h+=`<div style="display:flex;gap:6px;margin-bottom:10px">${fBtn('todos','Todos')}${fBtn('personal','🏠 Personal')}${fBtn('laboral','💼 Laboral')}</div>`;
-    // Parse cat from location prefix
     const getTodoCat=item=>{
       const loc=item.location||'';
       if(loc.startsWith('laboral:'))return 'laboral';
-      return 'personal'; // default for old items without prefix
+      return 'personal';
     };
     const filtered=todoFilter==='todos'?arr:arr.filter(i=>getTodoCat(i)===todoFilter);
     const pending=filtered.filter(i=>!i.done);
     const done=filtered.filter(i=>i.done);
-    const renderTodo=(item,active)=>{
+    const renderTodoLegacy=(item,active)=>{
       const loc=item.location||'';
       const locStripped=loc.startsWith('laboral:')?loc.slice(8):loc.startsWith('personal:')?loc.slice(9):loc;
       const isNote=locStripped.startsWith('note:');
@@ -1086,14 +1392,14 @@ function renderList(c){
         <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
       </div>`;
     };
-    if(!filtered.length)h+=`<div class="empty"><div style="font-size:28px">✦</div><p>Sin tareas${todoFilter!=='todos'?' en esta categoría':''}</p></div>`;
-    if(pending.length)h+=`<div>${pending.map(i=>renderTodo(i,true)).join('')}</div>`;
-    if(done.length)h+=`<div><div class="slabel">completados ✓</div>${done.map(i=>renderTodo(i,false)).join('')}</div>`;
+    if(!filtered.length) h+=`<div class="empty"><div style="font-size:28px">✦</div><p>Sin tareas${todoFilter!=='todos'?' en esta categoría':''}</p></div>`;
+    if(pending.length) h+=`<div>${pending.map(i=>renderTodoLegacy(i,true)).join('')}</div>`;
+    if(done.length) h+=`<div><div class="slabel">completados ✓</div>${done.map(i=>renderTodoLegacy(i,false)).join('')}</div>`;
   } else if(isRelease){
     const pending=arr.filter(i=>!i.done);
     const done=arr.filter(i=>i.done);
-    if(pending.length)h+=pending.map(i=>renderReleaseCard(i,c)).join('');
-    if(done.length)h+=`<div><div class="slabel">visto / escuchado ✓</div>${done.map(i=>renderReleaseCard(i,c)).join('')}</div>`;
+    if(pending.length) h+=pending.map(i=>renderReleaseCard(i,c)).join('');
+    if(done.length) h+=`<div><div class="slabel">visto / escuchado ✓</div>${done.map(i=>renderReleaseCard(i,c)).join('')}</div>`;
   } else if(c==='eventos'&&eventoView!=='list'){
     const sorted=[...arr].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
     const pending=sorted.filter(i=>!i.done);
@@ -1149,27 +1455,25 @@ function renderList(c){
       }).join('');
       h+=`</div>`;
     }
-    if(done.length)h+=`<div style="margin-top:12px"><div class="slabel">completados</div>${done.map(i=>renderItem(i,c,false)).join('')}</div>`;
+    if(done.length) h+=`<div style="margin-top:12px"><div class="slabel">completados</div>${done.map(i=>renderItem(i,c,false)).join('')}</div>`;
   } else {
     const pending=arr.filter(i=>!i.done);
     const done=arr.filter(i=>i.done);
     const sortedPending=(c==='eventos'||c==='citas')?[...pending].sort((a,b)=>(a.date||'').localeCompare(b.date||'')):pending;
-    if(pending.length)h+=`<div><div class="slabel">pendientes</div>${sortedPending.map(i=>renderItem(i,c,showPlan)).join('')}</div>`;
-    if(done.length)h+=`<div><div class="slabel">completados</div>${done.map(i=>renderItem(i,c,false)).join('')}</div>`;
+    if(pending.length) h+=`<div><div class="slabel">pendientes</div>${sortedPending.map(i=>renderItem(i,c,showPlan)).join('')}</div>`;
+    if(done.length) h+=`<div><div class="slabel">completados</div>${done.map(i=>renderItem(i,c,false)).join('')}</div>`;
   }
   return h+`</div>`;
 }
 
 function parseLocation(raw){
   if(!raw)return{loc:null,guest:null};
-  // Strip evtype suffix before splitting on ||
   const noEvtype=raw.replace(/~~evtype:[^|]*/,'');
   const parts=noEvtype.split('||');
   return{loc:parts[0]||null,guest:parts[1]||null};
 }
 
 function parseEventoMeta(raw){
-  // Extract evtype and guest from location string
   if(!raw)return{evtype:null,guest:null};
   const evtypeMatch=raw.match(/~~evtype:([^|~]+)/);
   const evtype=evtypeMatch?evtypeMatch[1]:null;
@@ -1178,7 +1482,6 @@ function parseEventoMeta(raw){
   return{evtype,guest:guestPart};
 }
 
-// Evento checklist — stored in localStorage
 function getEventoTodos(eventId){try{return JSON.parse(localStorage.getItem('etodos_'+eventId)||'[]');}catch{return[];}}
 function saveEventoTodos(eventId,todos){localStorage.setItem('etodos_'+eventId,JSON.stringify(todos));}
 function addEventoTodo(eventId){
@@ -1205,7 +1508,6 @@ function removeEventoTodo(eventId,todoId){
 }
 
 function renderItem(item,c,showPlan){
-  // Salud → health tracking card
   if(c==='salud'){
     const{subtype,note}=parseRelease(item.location||'');
     const typeInfo=SALUD_TYPES.find(t=>t.key===subtype)||SALUD_TYPES[0];
@@ -1227,7 +1529,6 @@ function renderItem(item,c,showPlan){
       <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
     </div>`;
   }
-  // Ejercicio con invitado → card estilo WhatsApp
   if(c==='ejercicio'&&item.location&&item.location.includes('||')){
     const{loc,guest}=parseLocation(item.location);
     const{locName,lat,lon}=parseLocationFull(loc);
@@ -1250,14 +1551,12 @@ function renderItem(item,c,showPlan){
       </div>
     </div>`;
   }
-  // Strip @@cumpleId from location before parsing
   const rawLoc=item.location?item.location.split('@@')[0].replace(/~~evtype:[^|~]*/,'').split('||')[0]:'';
   const cumpleId=item.location&&item.location.includes('@@')?item.location.split('@@')[1]:null;
   const{loc}=parseLocation(rawLoc);
   const{locName,lat,lon,website,phone,hours,mapsLink}=parseLocationFull(loc||rawLoc||null);
   const ds=item.date?`<div class="lmeta">${fmtDate(item.date)}${item.date.includes('T')?', '+fmtTime(item.date):''}</div>`:'';
   const finalMapsLink=mapsLink||mapsUrl(lat,lon,locName);
-  // Show name as text, links as clickable buttons — no duplicate
   const ls=locName?`<div class="lmeta">📍 ${locName}${hours?' · 🕐 '+hours:''}</div>`:'';
   const placeLinks=[
     finalMapsLink?`<a href="${finalMapsLink}" target="_blank" style="color:var(--pink);text-decoration:none;font-size:10px">🗺️ Maps</a>`:'',
@@ -1265,10 +1564,8 @@ function renderItem(item,c,showPlan){
     phone?`<a href="tel:${phone.replace(/\s/g,'')}" style="color:var(--pink);text-decoration:none;font-size:10px">📞</a>`:'',
   ].filter(Boolean);
   const placeRow=placeLinks.length?`<div style="display:flex;gap:8px;margin-top:3px;flex-wrap:wrap">${placeLinks.join('')}</div>`:'';
-  // Cumple badge
   const cumplePerson=cumpleId?(items.cumples||[]).find(i=>i.id===cumpleId):null;
   const cumpleBadge=cumplePerson?`<div style="font-size:10px;color:#d85a30;margin-top:3px">🎂 Cumple de ${cumplePerson.text.split(' ')[0]}</div>`:'';
-  // Evento type badge and guest
   let eventoBadge='', eventoGuest='';
   if(c==='eventos'){
     const{evtype,guest}=parseEventoMeta(item.location||'');
@@ -1289,7 +1586,6 @@ function renderItem(item,c,showPlan){
     }
   }
   const cancelledBadge=isCancelled?`<div style="font-size:10px;color:#c0392b;margin-top:2px;font-weight:500">❌ Cancelada</div>`:'';
-  // Checklist for eventos
   let checklistHtml='';
   if(c==='eventos'){
     const todos=getEventoTodos(item.id);
@@ -1336,7 +1632,6 @@ const SHARE_CATS=['eventos','citas','ejercicio'];
 function shareItem(id,c,mode='invite'){
   const item=(items[c]||[]).find(i=>i.id===id);
   if(!item)return;
-  // Strip @@, ~~evtype:, and || to get clean location
   const rawLoc=item.location?item.location.split('@@')[0].replace(/~~evtype:[^|~]*/,'').split('||')[0]:'';
   const{locName,lat,lon,mapsLink,website}=parseLocationFull(rawLoc||null);
   const finalMapLink=mapsLink||mapsUrl(lat,lon,locName);
@@ -1364,7 +1659,6 @@ function shareItem(id,c,mode='invite'){
     msg+=`\n💜 Guárdalo en Kami y nunca olvides nada → ${inviteLink}`;
     msg+='\n\n_vía kami 🌸_';
   } else {
-    // Notify — simple, just informing someone
     const emoji={salud:'💊',tareas:'✅',ideas:'💡',compras:'🛒',cumples:'🎂',recordatorios:'🔔'}[c]||'📌';
     msg+=`${emoji} *${item.text}*`;
     if(timeStr)msg+=`\n${timeStr}`;
@@ -1436,19 +1730,16 @@ function copyInvite(encodedLink){
 async function cancelCita(id){
   const item=(items['citas']||[]).find(i=>i.id===id);
   if(!item)return;
-  // Build cancellation WhatsApp message
   const timeStr=item.date&&item.date.includes('T')?`📅 ${fmtDate(item.date)}, ${fmtTime(item.date)}`:(item.date?`📅 ${fmtDate(item.date)}`:'');
   const rawLoc=item.location?item.location.split('||')[0]:'';
   const{locName}=parseLocationFull(rawLoc||null);
   const locStr=locName?`📍 ${locName}`:'';
   const msg=`Hola, tuve que cancelar:\n❌ *${item.text}*\n${timeStr}${locStr?'\n'+locStr:''}\n\nDisculpa los inconvenientes 🙏\n\n_vía kami 🌸_`;
-  // Save cancelled state
   const newLocation='cancelled:'+(item.location||'');
   const{error}=await sb.from('items').update({location:newLocation}).eq('id',id).eq('user_id',user.id);
   if(error){alert('Error al cancelar: '+error.message);return;}
   item.location=newLocation;
   render();
-  // Open WhatsApp with cancellation message
   sendWA(msg);
 }
 
@@ -1512,16 +1803,13 @@ async function saveEdit(){
   const wasCancelled=origItem?.location?.startsWith('cancelled:');
   let location=null;
   if(c==='salud'){
-    // Keep existing subtype from original, just update text
     const origLoc=origItem?.location||'';
     location=origLoc||null;
   } else if(c==='recordatorios'){
-    // Keep existing location (preserves personal:/laboral: prefix and note: content)
     const origLoc=origItem?.location||'';
     location=origLoc||null;
   } else if(NEED_LOC.includes(c)){
     location=getLocationStr('edit');
-    // Preserve @@cumpleId
     if(origItem?.location&&origItem.location.includes('@@')){
       const cumpleIdPart=origItem.location.split('@@')[1];
       if(cumpleIdPart)location=(location||'')+'@@'+cumpleIdPart;
@@ -1531,7 +1819,6 @@ async function saveEdit(){
       if(guest)location=(location||'')+'||'+guest;
     }
     if(c==='eventos'){
-      // Preserve evtype from original, add new guest
       const origLoc=origItem?.location||'';
       const evtypeMatch=origLoc.match(/~~evtype:([^|~]+)/);
       const origEvtype=evtypeMatch?evtypeMatch[1]:null;
@@ -1539,7 +1826,6 @@ async function saveEdit(){
       if(guest)location=(location||'')+'||'+guest;
       if(origEvtype)location=(location||'')+'~~evtype:'+origEvtype;
     }
-    // Re-apply cancelled: prefix if it was cancelled
     if(wasCancelled&&location!==null)location='cancelled:'+location;
   }
   const btn=document.getElementById('editBtn');
@@ -1556,6 +1842,7 @@ async function saveEdit(){
   closeEdit();
   render();
 }
+
 function sendWA(msg){window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');}
 function sendWAEncoded(encodedMsg){window.open('https://wa.me/?text='+encodedMsg,'_blank');}
 
@@ -1577,8 +1864,11 @@ function makePlan(e,id,c){
   }
 }
 
+// ── SHEET ────────────────────────────────────────────────────
+
 function openSheet(c){
-  const tc=c||(view!=='hoy'?view:'compras');
+  // Si se pasa categoría explícita, usarla. Si no, inferir del tab activo.
+  const tc=c||(TAB_DEFAULT_CAT[view]||'compras');
   selectCatByKey(tc);
   document.getElementById('overlay').classList.add('open');
   setTimeout(()=>document.getElementById('sheetInput').focus(),350);
@@ -1613,7 +1903,6 @@ function selectCat(btn,c){
     document.getElementById('sheetGuestLabel').textContent='Con quién (opcional)';
     document.getElementById('sheetGuest').placeholder='Ej: Mamá, Claudia, amigos...';
   }
-  // Subtypes
   const stWrap=document.getElementById('sheetSubtypeWrap');
   const stScroll=document.getElementById('sheetSubtypeScroll');
   if(isRelease){
@@ -1655,10 +1944,9 @@ function selectSubtype(btn,key){
   selectedSubtype=key;
 }
 
-let todoCat='personal'; // 'personal' | 'laboral'
+let todoCat='personal';
 
 function selectSubtypeTodo(btn,key){
-  // Only deselect other type chips (tarea/nota), not category chips
   document.querySelectorAll('#sheetSubtypeScroll .subtype-chip[onclick*="selectSubtypeTodo"]').forEach(x=>x.classList.remove('sel'));
   btn.classList.add('sel');
   selectedSubtype=key;
@@ -1666,10 +1954,10 @@ function selectSubtypeTodo(btn,key){
   noteWrap.style.display=key==='nota'?'block':'none';
 }
 
-function selectTodoCat(btn,cat){
+function selectTodoCat(btn,c){
   document.querySelectorAll('#sheetSubtypeScroll .subtype-chip[onclick*="selectTodoCat"]').forEach(x=>x.classList.remove('sel'));
   btn.classList.add('sel');
-  todoCat=cat;
+  todoCat=c;
 }
 
 function selectCatByKey(c){const chip=document.querySelector(`.cat-chip[data-cat="${c}"]`);if(chip)selectCat(chip,c);}
@@ -1678,78 +1966,64 @@ async function saveItem(){
   const btn=document.getElementById('saveBtn');
   btn.textContent='Guardando...';btn.disabled=true;
   try{
-  const text=document.getElementById('sheetInput').value.trim();
-  if(!text){document.getElementById('sheetInput').focus();btn.textContent='Guardar';btn.disabled=false;return;}
-  const dateElA=document.getElementById('sheetDate');
-  const dateElB=document.getElementById('sheetDateSimple');
-  const dateEl=(dateElA&&dateElA.style.display!=='none')?dateElA:dateElB;
-  let date=null;
-  try{date=(dateEl&&dateEl.value)?dateEl.value:null;}catch(e){date=null;}
-  let location=null;
-  const isRelease=cat==='cultura'||cat==='bts';
-  const isSalud=cat==='salud';
-  const isTodo=cat==='recordatorios';
-  const isEvento=cat==='eventos';
-  if(isRelease||isSalud){
-    const link=isRelease?(document.getElementById('sheetLink').value.trim()||''):'';
-    const note=isRelease?(document.getElementById('sheetNote').value.trim()||''):'';
-    location=`~~${selectedSubtype||''}~~${link}~~${note}`;
-  } else if(isTodo){
-    const noteContent=selectedSubtype==='nota'?(document.getElementById('sheetNote').value.trim()||''):'';
-    const cat_prefix=todoCat==='laboral'?'laboral:':'personal:';
-    if(selectedSubtype==='nota'&&noteContent) location=cat_prefix+'note:'+noteContent;
-    else location=cat_prefix;
-  } else if(NEED_LOC.includes(cat)){
-    location=getLocationStr('sheet');
-    if(cat==='ejercicio'||isEvento){
-      const guest=document.getElementById('sheetGuest').value.trim();
-      if(guest)location=(location||'')+'||'+guest;
+    const text=document.getElementById('sheetInput').value.trim();
+    if(!text){document.getElementById('sheetInput').focus();btn.textContent='Guardar';btn.disabled=false;return;}
+    const dateElA=document.getElementById('sheetDate');
+    const dateElB=document.getElementById('sheetDateSimple');
+    const dateEl=(dateElA&&dateElA.style.display!=='none')?dateElA:dateElB;
+    let date=null;
+    try{date=(dateEl&&dateEl.value)?dateEl.value:null;}catch(e){date=null;}
+    let location=null;
+    const isRelease=cat==='cultura'||cat==='bts';
+    const isSalud=cat==='salud';
+    const isTodo=cat==='recordatorios';
+    const isEvento=cat==='eventos';
+    if(isRelease||isSalud){
+      const link=isRelease?(document.getElementById('sheetLink').value.trim()||''):'';
+      const note=isRelease?(document.getElementById('sheetNote').value.trim()||''):'';
+      location=`~~${selectedSubtype||''}~~${link}~~${note}`;
+    } else if(isTodo){
+      const noteContent=selectedSubtype==='nota'?(document.getElementById('sheetNote').value.trim()||''):'';
+      const cat_prefix=todoCat==='laboral'?'laboral:':'personal:';
+      if(selectedSubtype==='nota'&&noteContent) location=cat_prefix+'note:'+noteContent;
+      else location=cat_prefix;
+    } else if(NEED_LOC.includes(cat)){
+      location=getLocationStr('sheet');
+      if(cat==='ejercicio'||isEvento){
+        const guest=document.getElementById('sheetGuest').value.trim();
+        if(guest)location=(location||'')+'||'+guest;
+      }
+      if(isEvento&&selectedSubtype){
+        location=(location||'')+'~~evtype:'+selectedSubtype;
+      }
     }
-    if(isEvento&&selectedSubtype){
-      location=(location||'')+'~~evtype:'+selectedSubtype;
+    if(!user){alert('No hay sesión. Recarga la página.');btn.textContent='Guardar';btn.disabled=false;return;}
+    const safeDate=date?date.slice(0,16)||null:null;
+    let data,error;
+    try{
+      const resp=await sb.from('items').insert([{user_id:user.id,category:cat,text,date:safeDate||null,location:location||null,done:false}]).select().single();
+      data=resp.data;error=resp.error;
+    }catch(e){error=e;}
+    btn.textContent='Guardar';btn.disabled=false;
+    if(error||!data){
+      alert('No se guardó:\n'+(error?.message||error?.details||error?.code||JSON.stringify(error)||'Supabase no respondió'));
+      return;
     }
-  }
-  if(!user){alert('No hay sesión. Recarga la página.');btn.textContent='Guardar';btn.disabled=false;return;}
-  const safeDate=date?date.slice(0,16)||null:null;
-  let data,error;
-  try{
-    const resp=await sb.from('items').insert([{user_id:user.id,category:cat,text,date:safeDate||null,location:location||null,done:false}]).select().single();
-    data=resp.data;error=resp.error;
-  }catch(e){error=e;}
-  btn.textContent='Guardar';btn.disabled=false;
-  if(error||!data){
-    alert('No se guardó:\n'+(error?.message||error?.details||error?.code||JSON.stringify(error)||'Supabase no respondió'));
-    return;
-  }
-  if(!items[cat])items[cat]=[];
-  items[cat].unshift(data);
-  placeData.sheet=null;
-  closeSheet();
-  switchViewTo(cat);
+    if(!items[cat])items[cat]=[];
+    items[cat].unshift(data);
+    placeData.sheet=null;
+    closeSheet();
+    switchViewTo(cat);
   }catch(outerErr){
     btn.textContent='Guardar';btn.disabled=false;
     alert('Error inesperado:\n'+outerErr.message);
   }
 }
 
-function switchView(v,btn){
-  if(v!=='eventos')eventoFilter=null;
-  if(v!=='recordatorios')todoFilter='todos';
-  view=v;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  if(btn)btn.classList.add('active');
-  render();
-}
-
-function switchViewTo(v){
-  if(v!=='eventos')eventoFilter=null;
-  if(v!=='recordatorios')todoFilter='todos';
-  view=v;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===v));
-  render();
-}
+// ── STATS ────────────────────────────────────────────────────
 
 function toggleUserMenu(){document.getElementById('userOverlay').classList.toggle('open');}
+function handleUserOverlay(e){if(e.target.classList.contains('user-bg'))toggleUserMenu();}
 
 function openStats(){
   toggleUserMenu();
@@ -1758,7 +2032,6 @@ function openStats(){
   const thisYear=now.getFullYear();
   const thisMonth=now.getMonth();
 
-  // Count items per category
   const counts={};
   const yearCounts={};
   Object.entries(items).forEach(([c,arr])=>{
@@ -1773,14 +2046,12 @@ function openStats(){
     }
   });
 
-  // Upcoming events this month
   const upcomingThisMonth=(items.eventos||[]).filter(i=>{
     if(!i.date||i.done)return false;
     const d=parseLocalDate(i.date);
     return d.getFullYear()===thisYear&&d.getMonth()===thisMonth&&d>=now;
   }).length;
 
-  // Concert count by year
   const concerts=(items.eventos||[]).filter(i=>{
     const{evtype}=parseEventoMeta(i.location||'');
     return evtype==='concierto';
@@ -1794,7 +2065,6 @@ function openStats(){
   const allYears=[...new Set(Object.keys(concertYears))].sort();
   const maxConcerts=Math.max(...Object.values(concertYears),1);
 
-  // Próximos cumples
   const proxCumples=(items.cumples||[]).filter(i=>{
     const d=nextBirthdayDate(i.date);
     return d&&daysUntil(d)<=30;
@@ -1804,7 +2074,6 @@ function openStats(){
     <div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:20px 16px 40px">
       <div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 20px"></div>
       <div style="font-size:18px;font-weight:500;color:var(--text);margin-bottom:16px">Resumen</div>
-
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px">
         <div style="background:var(--bg2);border-radius:10px;padding:12px;text-align:center">
           <div style="font-size:22px;font-weight:500;color:var(--text)">${(items.eventos||[]).filter(i=>!i.done).length}</div>
@@ -1819,7 +2088,6 @@ function openStats(){
           <div style="font-size:10px;color:var(--text3);margin-top:2px">este mes</div>
         </div>
       </div>
-
       ${allYears.length?`<div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:10px">Conciertos por año</div>
       <div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:20px">
         ${allYears.map(y=>`<div style="display:flex;align-items:center;gap:10px;padding:5px 0">
@@ -1830,7 +2098,6 @@ function openStats(){
           <span style="font-size:12px;color:var(--text2);min-width:16px;text-align:right">${concertYears[y]}</span>
         </div>`).join('')}
       </div>`:''}
-
       <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:10px">Categorías</div>
       <div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px">
         ${Object.entries(LABELS).filter(([k])=>k!=='peliculas'&&k!=='libros').map(([k,label],i,arr)=>`<div style="display:flex;align-items:center;gap:12px;padding:9px 14px;${i<arr.length-1?'border-bottom:0.5px solid var(--border)':''}">
@@ -1839,8 +2106,7 @@ function openStats(){
           <span style="font-size:13px;font-weight:500;color:var(--text2)">${counts[k]||0}</span>
         </div>`).join('')}
       </div>
-
-      ${proxCumples.length?`<div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:10px">Proximos cumples</div>
+      ${proxCumples.length?`<div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:10px">Próximos cumples</div>
       <div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden">
         ${proxCumples.map((c,i,arr)=>{
           const d=nextBirthdayDate(c.date);
@@ -1859,13 +2125,12 @@ function openStats(){
   el.innerHTML=statsHTML;
   document.body.appendChild(el.firstElementChild);
 }
-function handleUserOverlay(e){if(e.target.classList.contains('user-bg'))toggleUserMenu();}
+
+// ── UTILS ────────────────────────────────────────────────────
+
 function parseLocalDate(s){
   if(!s)return null;
-  // Treat stored datetime as local time, not UTC
   if(s.length<=10)return new Date(s+'T12:00:00');
-  // "2026-03-21T22:00" — no Z, so JS parses as local already
-  // but if it has Z or +00:00 it would shift; strip timezone offset
   return new Date(s.replace('Z','').replace(/[+-]\d{2}:\d{2}$/,''));
 }
 function fmtTime(s){try{return parseLocalDate(s).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});}catch{return '';}}
