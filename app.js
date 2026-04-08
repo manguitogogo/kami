@@ -328,7 +328,7 @@ function sendDailySummary(){
     compras.slice(0,5).forEach(i=>msg+=`\n  • ${i.text}`);
   }
 
-  msg+='\n\n_vía kami 🌸_';
+  msg+='\n\n_via kami_';
   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
@@ -1218,7 +1218,7 @@ function renderItem(item,c,showPlan){
     const mapsLink=mapsUrl(lat,lon,locName);
     const userName=user?.user_metadata?.full_name||user?.email||'';
     const inviteLink=buildInviteLink(item,c,userName);
-    const timeStr=item.date&&item.date.includes('T')?`📅 ${fmtDate(item.date)}, ${fmtTime(item.date)}`:(item.date?`📅 ${fmtDate(item.date)}`:'');
+    const timeStr=item.date&&item.date.includes('T')?`${fmtDate(item.date)}, ${fmtTime(item.date)}`:(item.date?`${fmtDate(item.date)}`:'');
     const locStr=locName?(mapsLink?`📍 ${locName} → ${mapsLink}`:`📍 ${locName}`):'';
     const msg=`${guest ? `Oye ${guest}!` : 'Oye!'} ¿${item.text}? 💪\n${timeStr}\n${locStr}\n\n¿Te apuntas? Guárdalo en tu Kami 👉 ${inviteLink}`.trim();
     return `<div class="wa-card">
@@ -1233,7 +1233,7 @@ function renderItem(item,c,showPlan){
     </div>`;
   }
   // Strip @@cumpleId from location before parsing
-  const rawLoc=item.location?item.location.split('@@')[0]:'';
+  const rawLoc=item.location?item.location.split('@@')[0].replace(/~~evtype:[^|~]*/,'').split('||')[0]:'';
   const cumpleId=item.location&&item.location.includes('@@')?item.location.split('@@')[1]:null;
   const{loc}=parseLocation(rawLoc);
   const{locName,lat,lon,website,phone,hours,mapsLink}=parseLocationFull(loc||rawLoc||null);
@@ -1321,7 +1321,7 @@ function shareItem(id,c,mode='invite'){
   const rawLoc=item.location?item.location.split('@@')[0].split('||')[0]:'';
   const{locName,lat,lon,mapsLink,website}=parseLocationFull(rawLoc||null);
   const finalMapLink=mapsLink||mapsUrl(lat,lon,locName);
-  const timeStr=item.date&&item.date.includes('T')?`📅 ${fmtDate(item.date)}, ${fmtTime(item.date)}`:(item.date?`📅 ${fmtDate(item.date)}`:'');
+  const timeStr=item.date&&item.date.includes('T')?`${fmtDate(item.date)}, ${fmtTime(item.date)}`:(item.date?`${fmtDate(item.date)}`:'');
   const inviteLink=buildInviteLink(item,c,user?.user_metadata?.full_name||'');
   const cumpleId=item.location&&item.location.includes('@@')?item.location.split('@@')[1]:null;
   const cumplePerson=cumpleId?(items.cumples||[]).find(i=>i.id===cumpleId):null;
@@ -1337,13 +1337,13 @@ function shareItem(id,c,mode='invite'){
       msg+=`${emoji} *${item.text}*\n`;
     }
     if(timeStr)msg+=`${timeStr}\n`;
-    if(locName&&finalMapLink)msg+=`📍 ${locName} → ${finalMapLink}\n`;
+    if(locName&&finalMapLink)msg+=`📍 ${locName}\n${finalMapLink}\n`;
     else if(locName)msg+=`📍 ${locName}\n`;
-    else if(finalMapLink)msg+=`📍 ${finalMapLink}\n`;
+    else if(finalMapLink)msg+=`${finalMapLink}\n`;
     if(website)msg+=`🌐 ${website.startsWith('http')?website:'https://'+website}\n`;
-    msg+=`\n📲 Agregar a tu calendario → ${calLink}`;
-    msg+=`\n💜 Guárdalo en Kami y nunca olvides nada → ${inviteLink}`;
-    msg+='\n\n_vía kami 🌸_';
+    msg+=`\nAgrega al calendario: ${calLink}`;
+    msg+=`Guarda el evento en Kami: ${inviteLink}`;
+    msg+='\n\n_via kami_';
   } else {
     // Notify — simple, just informing someone
     const emoji={salud:'💊',tareas:'✅',ideas:'💡',compras:'🛒',cumples:'🎂',recordatorios:'🔔'}[c]||'📌';
@@ -1352,7 +1352,7 @@ function shareItem(id,c,mode='invite'){
     if(locName&&finalMapLink)msg+=`\n📍 ${locName} → ${finalMapLink}`;
     else if(locName)msg+=`\n📍 ${locName}`;
     if(website)msg+=`\n🌐 ${website.startsWith('http')?website:'https://'+website}`;
-    msg+='\n\n_vía kami 🌸_';
+    msg+='\n\n_via kami_';
   }
   sendWA(msg);
 }
@@ -1418,7 +1418,7 @@ async function cancelCita(id){
   const item=(items['citas']||[]).find(i=>i.id===id);
   if(!item)return;
   // Build cancellation WhatsApp message
-  const timeStr=item.date&&item.date.includes('T')?`📅 ${fmtDate(item.date)}, ${fmtTime(item.date)}`:(item.date?`📅 ${fmtDate(item.date)}`:'');
+  const timeStr=item.date&&item.date.includes('T')?`${fmtDate(item.date)}, ${fmtTime(item.date)}`:(item.date?`${fmtDate(item.date)}`:'');
   const rawLoc=item.location?item.location.split('||')[0]:'';
   const{locName}=parseLocationFull(rawLoc||null);
   const locStr=locName?`📍 ${locName}`:'';
@@ -1684,9 +1684,10 @@ async function saveItem(){
   try{({data,error}=await sb.from('items').insert([{user_id:user.id,category:cat,text,date:safeDate||null,location:location||null,done:false}]).select().single());}
   catch(e){error=e;}
   btn.textContent='Guardar';btn.disabled=false;
-  if(error){
-    console.error('saveItem error:',error);
-    alert('Error al guardar:\n'+(error.message||error.details||error.code||JSON.stringify(error)));
+  if(error||!data){
+    const msg=error?(error.message||error.details||error.code||JSON.stringify(error)):'Sin respuesta de Supabase — revisa conexión';
+    console.error('saveItem error:',error,'data:',data);
+    alert('Error al guardar:\n'+msg);
     return;
   }
   if(!items[cat])items[cat]=[];
