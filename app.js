@@ -1652,10 +1652,13 @@ function selectSubtypeTodo(btn,key){
 function selectCatByKey(c){const chip=document.querySelector(`.cat-chip[data-cat="${c}"]`);if(chip)selectCat(chip,c);}
 
 async function saveItem(){
+  const btn=document.getElementById('saveBtn');
+  btn.textContent='Guardando...';btn.disabled=true;
+  try{
   const text=document.getElementById('sheetInput').value.trim();
-  if(!text){document.getElementById('sheetInput').focus();return;}
+  if(!text){document.getElementById('sheetInput').focus();btn.textContent='Guardar';btn.disabled=false;return;}
   const dateEl=document.getElementById('sheetDate').style.display!='none'?document.getElementById('sheetDate'):document.getElementById('sheetDateSimple');
-  const date=dateEl.value||null;
+  const date=dateEl?dateEl.value||null:null;
   let location=null;
   const isRelease=cat==='cultura'||cat==='bts';
   const isSalud=cat==='salud';
@@ -1674,29 +1677,20 @@ async function saveItem(){
       const guest=document.getElementById('sheetGuest').value.trim();
       if(guest)location=(location||'')+'||'+guest;
     }
-    // Store evento subtype in location with evtype: prefix
     if(isEvento&&selectedSubtype){
       location=(location||'')+'~~evtype:'+selectedSubtype;
     }
   }
-  const btn=document.getElementById('saveBtn');
-  btn.textContent='Guardando...';btn.disabled=true;
-  if(!user){alert('No hay sesión activa. Recarga la página.');btn.textContent='Guardar';btn.disabled=false;return;}
-  // Validate date format
-  const safeDate=date?date.replace('T24:','T23:59').slice(0,16)||null:null;
+  if(!user){alert('No hay sesión. Recarga la página.');btn.textContent='Guardar';btn.disabled=false;return;}
+  const safeDate=date?date.slice(0,16)||null:null;
   let data,error;
   try{
     const resp=await sb.from('items').insert([{user_id:user.id,category:cat,text,date:safeDate||null,location:location||null,done:false}]).select().single();
-    data=resp.data;
-    error=resp.error;
-  }catch(e){
-    error=e;
-  }
+    data=resp.data;error=resp.error;
+  }catch(e){error=e;}
   btn.textContent='Guardar';btn.disabled=false;
   if(error||!data){
-    const msg=error?(error.message||error.details||error.code||JSON.stringify(error)||'error desconocido'):'Supabase no respondió';
-    console.error('saveItem:',{error,data,cat,user:user?.id});
-    alert('No se guardó:\n'+msg);
+    alert('No se guardó:\n'+(error?.message||error?.details||error?.code||JSON.stringify(error)||'Supabase no respondió'));
     return;
   }
   if(!items[cat])items[cat]=[];
@@ -1704,6 +1698,10 @@ async function saveItem(){
   placeData.sheet=null;
   closeSheet();
   switchViewTo(cat);
+  }catch(outerErr){
+    btn.textContent='Guardar';btn.disabled=false;
+    alert('Error inesperado:\n'+outerErr.message);
+  }
 }
 
 function switchView(v,btn){
