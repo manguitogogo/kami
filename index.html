@@ -18,15 +18,15 @@
 <div id="loadingScreen"><div class="loading-logo">kami</div></div>
 
 <div id="authScreen">
-<div class="auth-logo">kami</div>
-<div class="auth-tagline">tu espacio para recordar<br>todo lo que importa</div>
-<div class="auth-box">
-<button class="auth-btn" id="authBtn" onclick="signInGoogle()" style="display:flex;align-items:center;justify-content:center;gap:12px;background:var(--card);color:var(--text);border:0.5px solid var(--border2)">
-<svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
-Continuar con Google
-</button>
-</div>
-<div class="auth-note">Al entrar aceptas que tus datos se guardan de forma privada en tu cuenta personal.</div>
+  <div class="auth-logo">kami</div>
+  <div class="auth-tagline">tu espacio para recordar<br>todo lo que importa</div>
+  <div class="auth-box">
+    <button class="auth-btn" id="authBtn" onclick="signInGoogle()" style="display:flex;align-items:center;justify-content:center;gap:12px;background:var(--card);color:var(--text);border:0.5px solid var(--border2)">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
+      Continuar con Google
+    </button>
+  </div>
+  <div class="auth-note">Al entrar aceptas que tus datos se guardan de forma privada en tu cuenta personal.</div>
 </div>
 
 <div id="sentScreen" style="display:none"></div>
@@ -47,110 +47,136 @@ Continuar con Google
 </div>
 
 <div id="appShell">
-<div class="topbar">
-<div class="logo">kami</div>
-<div class="topbar-right">
-<div class="date-chip" id="dateChip"></div>
-<div class="avatar" id="userAvatar" onclick="toggleUserMenu()">k</div>
-</div>
-</div>
-<div class="nav-tabs">
-<button class="tab active" data-view="hoy" onclick="switchView('hoy',this)"><div class="tab-dot" style="background:var(--pink)"></div>Hoy</button>
-<button class="tab" data-view="compras" onclick="switchView('compras',this)"><div class="tab-dot" style="background:#1d9e75"></div>Compras</button>
-<button class="tab" data-view="eventos" onclick="switchView('eventos',this)"><div class="tab-dot" style="background:#ba7517"></div>Eventos</button>
-<button class="tab" data-view="citas" onclick="switchView('citas',this)"><div class="tab-dot" style="background:#E8637A"></div>Citas</button>
-<button class="tab" data-view="salud" onclick="switchView('salud',this)"><div class="tab-dot" style="background:#e24b4a"></div>Salud</button>
-<button class="tab" data-view="cumples" onclick="switchView('cumples',this)"><div class="tab-dot" style="background:#d85a30"></div>Cumpleaños</button>
-<button class="tab" data-view="ejercicio" onclick="switchView('ejercicio',this)"><div class="tab-dot" style="background:#0f6e56"></div>Ejercicio</button>
-<button class="tab" data-view="recordatorios" onclick="switchView('recordatorios',this)"><div class="tab-dot" style="background:#534ab7"></div>To-Do ✅</button>
-<button class="tab" data-view="ideas" onclick="switchView('ideas',this)"><div class="tab-dot" style="background:#888780"></div>Ideas</button>
-<button class="tab" data-view="cultura" onclick="switchView('cultura',this)"><div class="tab-dot" style="background:#C084C0"></div>Cultura</button>
-<button class="tab" data-view="bts" onclick="switchView('bts',this)"><div class="tab-dot" style="background:#9B8EC4"></div><span style="color:#9B8EC4;font-weight:500">BTS 💜</span></button>
-</div>
-<div class="main" id="mainContent"></div>
-<button class="fab" onclick="openSheet()">
-<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-</button>
+  <div class="topbar">
+    <div class="logo">kami</div>
+    <div class="topbar-right">
+      <div class="date-chip" id="dateChip"></div>
+      <div class="avatar" id="userAvatar" onclick="toggleUserMenu()">k</div>
+    </div>
+  </div>
+
+  <div class="main" id="mainContent"></div>
+
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="bnav-btn active" data-view="hoy" onclick="switchView('hoy',this)">
+      <svg class="bnav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+      </svg>
+      <span class="bnav-label">Inicio</span>
+    </button>
+    <button class="bnav-btn" data-view="agenda" onclick="switchView('agenda',this)">
+      <svg class="bnav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      <span class="bnav-label">Agenda</span>
+    </button>
+    <button class="bnav-btn" data-view="todo" onclick="switchView('todo',this)">
+      <svg class="bnav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 11 12 14 22 4"/>
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+      </svg>
+      <span class="bnav-label">To-Do</span>
+    </button>
+    <button class="bnav-btn" data-view="mas" onclick="switchView('mas',this)">
+      <svg class="bnav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="1"/>
+        <circle cx="19" cy="12" r="1"/>
+        <circle cx="5" cy="12" r="1"/>
+      </svg>
+      <span class="bnav-label">Más</span>
+    </button>
+  </nav>
+
+  <button class="fab" onclick="openSheet()">
+    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
 </div>
 
+<!-- Sheet de agregar -->
 <div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
-<div class="sheet">
-<div class="sheet-handle"></div>
-<div class="sheet-title">¿Qué quieres agregar?</div>
-<div class="cat-scroll">
-<button class="cat-chip sel" data-cat="compras" onclick="selectCat(this,'compras')"><div class="cat-cdot" style="background:#1d9e75"></div>Compras</button>
-<button class="cat-chip" data-cat="eventos" onclick="selectCat(this,'eventos')"><div class="cat-cdot" style="background:#ba7517"></div>Evento</button>
-<button class="cat-chip" data-cat="citas" onclick="selectCat(this,'citas')"><div class="cat-cdot" style="background:#E8637A"></div>Cita</button>
-<button class="cat-chip" data-cat="salud" onclick="selectCat(this,'salud')"><div class="cat-cdot" style="background:#e24b4a"></div>Salud</button>
-<button class="cat-chip" data-cat="cumples" onclick="selectCat(this,'cumples')"><div class="cat-cdot" style="background:#d85a30"></div>Cumpleaños</button>
-<button class="cat-chip" data-cat="ejercicio" onclick="selectCat(this,'ejercicio')"><div class="cat-cdot" style="background:#0f6e56"></div>Ejercicio</button>
-<button class="cat-chip" data-cat="recordatorios" onclick="selectCat(this,'recordatorios')"><div class="cat-cdot" style="background:#534ab7"></div>To-Do</button>
-<button class="cat-chip" data-cat="ideas" onclick="selectCat(this,'ideas')"><div class="cat-cdot" style="background:#888780"></div>Idea</button>
-<button class="cat-chip" data-cat="cultura" onclick="selectCat(this,'cultura')"><div class="cat-cdot" style="background:#C084C0"></div>Cultura</button>
-<button class="cat-chip" data-cat="bts" onclick="selectCat(this,'bts')" style="background:rgba(155,142,196,0.15);border-color:rgba(155,142,196,0.3);color:#9B8EC4"><div class="cat-cdot" style="background:#9B8EC4"></div>BTS 💜</button>
-</div>
-<div class="sheet-field">
-<input class="sheet-input" id="sheetInput" placeholder="Escribe aquí..." type="text">
-</div>
-<div class="sheet-field" id="sheetDateWrap" style="display:none">
-<label id="sheetDateLabel">Fecha y hora</label>
-<input class="sheet-input" type="datetime-local" id="sheetDate">
-<input class="sheet-input" type="date" id="sheetDateSimple" style="display:none">
-</div>
-<div class="sheet-field" id="sheetLocationWrap" style="display:none">
-<label>Lugar (opcional)</label>
-<div class="place-wrap">
-<input class="sheet-input" id="sheetLocation" placeholder="Busca o escribe un lugar..." type="text" autocomplete="off" oninput="searchPlace(this,'sheetPlaceSug')" onblur="hideSug('sheetPlaceSug')">
-<div class="place-suggestions" id="sheetPlaceSug" style="display:none"></div>
-</div>
-<div style="font-size:10px;color:var(--text3);margin-top:4px;padding:0 2px">Si no aparece, escribe el nombre y agrega los links abajo ✍️</div>
-<div id="sheetPlaceInfo" style="display:none;margin-top:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--radius-sm);font-size:11px;line-height:1.8"></div>
-<div id="sheetPlaceLinksWrap" style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
-<input class="sheet-input" id="sheetMapsLink" placeholder="🗺️ Link de Google Maps (opcional)" type="url" style="font-size:12px;padding:9px 12px">
-<input class="sheet-input" id="sheetWebLink" placeholder="🌐 Sitio web o Instagram (opcional)" type="url" style="font-size:12px;padding:9px 12px">
-</div>
-</div>
-<div class="sheet-field" id="sheetGuestWrap" style="display:none">
-<label id="sheetGuestLabel">Con quién (opcional)</label>
-<input class="sheet-input" id="sheetGuest" placeholder="Nombre de quien va contigo...">
-</div>
-<div id="sheetSubtypeWrap" style="display:none">
-<div class="sheet-field" style="padding-bottom:4px"><label id="sheetSubtypeLabel">Tipo</label></div>
-<div class="subtype-scroll" id="sheetSubtypeScroll"></div>
-</div>
-<div class="sheet-field" id="sheetLinkWrap" style="display:none">
-<label>Link (Spotify, YouTube, etc.)</label>
-<input class="sheet-input" id="sheetLink" placeholder="https://..." type="url">
-</div>
-<div class="sheet-field" id="sheetNoteWrap" style="display:none">
-<label id="sheetNoteLabel">Nota personal (opcional)</label>
-<textarea class="sheet-input" id="sheetNote" placeholder="ej. escuchar con Ana, ver en el cine..." rows="3" style="resize:none;font-family:'DM Sans',sans-serif"></textarea>
-</div>
-<div class="sheet-actions">
-<button class="btn-cancel" onclick="closeSheet()">Cancelar</button>
-<button class="btn-save" id="saveBtn" onclick="saveItem()">Guardar</button>
-</div>
-</div>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">¿Qué quieres agregar?</div>
+    <div class="cat-scroll">
+      <button class="cat-chip sel" data-cat="compras" onclick="selectCat(this,'compras')"><div class="cat-cdot" style="background:#1d9e75"></div>Compras</button>
+      <button class="cat-chip" data-cat="eventos" onclick="selectCat(this,'eventos')"><div class="cat-cdot" style="background:#ba7517"></div>Evento</button>
+      <button class="cat-chip" data-cat="citas" onclick="selectCat(this,'citas')"><div class="cat-cdot" style="background:#E8637A"></div>Cita</button>
+      <button class="cat-chip" data-cat="salud" onclick="selectCat(this,'salud')"><div class="cat-cdot" style="background:#e24b4a"></div>Salud</button>
+      <button class="cat-chip" data-cat="cumples" onclick="selectCat(this,'cumples')"><div class="cat-cdot" style="background:#d85a30"></div>Cumpleaños</button>
+      <button class="cat-chip" data-cat="ejercicio" onclick="selectCat(this,'ejercicio')"><div class="cat-cdot" style="background:#0f6e56"></div>Ejercicio</button>
+      <button class="cat-chip" data-cat="recordatorios" onclick="selectCat(this,'recordatorios')"><div class="cat-cdot" style="background:#534ab7"></div>To-Do</button>
+      <button class="cat-chip" data-cat="ideas" onclick="selectCat(this,'ideas')"><div class="cat-cdot" style="background:#888780"></div>Idea</button>
+      <button class="cat-chip" data-cat="cultura" onclick="selectCat(this,'cultura')"><div class="cat-cdot" style="background:#C084C0"></div>Cultura</button>
+      <button class="cat-chip" data-cat="bts" onclick="selectCat(this,'bts')" style="background:rgba(155,142,196,0.15);border-color:rgba(155,142,196,0.3);color:#9B8EC4"><div class="cat-cdot" style="background:#9B8EC4"></div>BTS 💜</button>
+    </div>
+    <div class="sheet-field">
+      <input class="sheet-input" id="sheetInput" placeholder="Escribe aquí..." type="text">
+    </div>
+    <div class="sheet-field" id="sheetDateWrap" style="display:none">
+      <label id="sheetDateLabel">Fecha y hora</label>
+      <input class="sheet-input" type="datetime-local" id="sheetDate">
+      <input class="sheet-input" type="date" id="sheetDateSimple" style="display:none">
+    </div>
+    <div class="sheet-field" id="sheetLocationWrap" style="display:none">
+      <label>Lugar (opcional)</label>
+      <div class="place-wrap">
+        <input class="sheet-input" id="sheetLocation" placeholder="Busca o escribe un lugar..." type="text" autocomplete="off" oninput="searchPlace(this,'sheetPlaceSug')" onblur="hideSug('sheetPlaceSug')">
+        <div class="place-suggestions" id="sheetPlaceSug" style="display:none"></div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px;padding:0 2px">Si no aparece, escribe el nombre y agrega los links abajo ✍️</div>
+      <div id="sheetPlaceInfo" style="display:none;margin-top:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--radius-sm);font-size:11px;line-height:1.8"></div>
+      <div id="sheetPlaceLinksWrap" style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+        <input class="sheet-input" id="sheetMapsLink" placeholder="🗺️ Link de Google Maps (opcional)" type="url" style="font-size:12px;padding:9px 12px">
+        <input class="sheet-input" id="sheetWebLink" placeholder="🌐 Sitio web o Instagram (opcional)" type="url" style="font-size:12px;padding:9px 12px">
+      </div>
+    </div>
+    <div class="sheet-field" id="sheetGuestWrap" style="display:none">
+      <label id="sheetGuestLabel">Con quién (opcional)</label>
+      <input class="sheet-input" id="sheetGuest" placeholder="Nombre de quien va contigo...">
+    </div>
+    <div id="sheetSubtypeWrap" style="display:none">
+      <div class="sheet-field" style="padding-bottom:4px"><label id="sheetSubtypeLabel">Tipo</label></div>
+      <div class="subtype-scroll" id="sheetSubtypeScroll"></div>
+    </div>
+    <div class="sheet-field" id="sheetLinkWrap" style="display:none">
+      <label>Link (Spotify, YouTube, etc.)</label>
+      <input class="sheet-input" id="sheetLink" placeholder="https://..." type="url">
+    </div>
+    <div class="sheet-field" id="sheetNoteWrap" style="display:none">
+      <label id="sheetNoteLabel">Nota personal (opcional)</label>
+      <textarea class="sheet-input" id="sheetNote" placeholder="ej. escuchar con Ana, ver en el cine..." rows="3" style="resize:none;font-family:'DM Sans',sans-serif"></textarea>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeSheet()">Cancelar</button>
+      <button class="btn-save" id="saveBtn" onclick="saveItem()">Guardar</button>
+    </div>
+  </div>
 </div>
 
+<!-- User menu -->
 <div class="user-overlay" id="userOverlay" onclick="handleUserOverlay(event)">
-<div class="user-bg"></div>
-<div class="user-menu">
-<div class="user-info"><div class="user-email" id="menuEmail">—</div></div>
-<div class="menu-item" onclick="openStats()">📊 Resumen</div>
-<div class="menu-item" onclick="openTabsConfig();toggleUserMenu()">⚙️ Personalizar tabs</div>
-<div class="menu-item danger" onclick="signOut()">Cerrar sesión</div>
-</div>
+  <div class="user-bg"></div>
+  <div class="user-menu">
+    <div class="user-info"><div class="user-email" id="menuEmail">—</div></div>
+    <div class="menu-item" onclick="openStats()">📊 Resumen</div>
+    <div class="menu-item" onclick="openTabsConfig();toggleUserMenu()">⚙️ Personalizar tabs</div>
+    <div class="menu-item danger" onclick="signOut()">Cerrar sesión</div>
+  </div>
 </div>
 
+<!-- Tabs config screen -->
 <div class="tabs-screen" id="tabsScreen">
-<div class="tabs-screen-header">
-<span class="tabs-screen-title">Mis tabs</span>
-<button class="tabs-screen-close" onclick="closeTabsConfig()">✕</button>
-</div>
-<div class="tabs-list" id="tabsList"></div>
+  <div class="tabs-screen-header">
+    <span class="tabs-screen-title">Mis tabs</span>
+    <button class="tabs-screen-close" onclick="closeTabsConfig()">✕</button>
+  </div>
+  <div class="tabs-list" id="tabsList"></div>
 </div>
 
+<!-- Invite card overlay -->
 <div class="invite-card-overlay" id="inviteCardOverlay">
   <div class="invite-card-wrap">
     <canvas id="inviteCanvas" class="invite-card-preview" width="680" height="680"></canvas>
@@ -161,73 +187,76 @@ Continuar con Google
   </div>
 </div>
 
+<!-- Cumple event overlay -->
 <div class="overlay" id="cumpleEventOverlay" onclick="handleCumpleEventOverlay(event)">
-<div class="sheet">
-<div class="sheet-handle"></div>
-<div class="sheet-title" id="cumpleEventTitle">Agregar evento de cumpleaños</div>
-<div class="sheet-field">
-<label>¿Qué van a hacer?</label>
-<input class="sheet-input" id="cumpleEventInput" placeholder="ej. Cena de cumpleaños, Festejo...">
-</div>
-<div class="sheet-field">
-<label>Fecha y hora</label>
-<input class="sheet-input" type="datetime-local" id="cumpleEventDate">
-</div>
-<div class="sheet-field">
-<label>Lugar (opcional)</label>
-<div class="place-wrap">
-<input class="sheet-input" id="cumpleEventLocation" placeholder="Busca o escribe un lugar..." type="text" autocomplete="off" oninput="searchPlace(this,'cumpleEventPlaceSug')" onblur="hideSug('cumpleEventPlaceSug')">
-<div class="place-suggestions" id="cumpleEventPlaceSug" style="display:none"></div>
-</div>
-<div style="font-size:10px;color:var(--text3);margin-top:4px;padding:0 2px">Si no aparece, escribe el nombre y agrega los links ✍️</div>
-<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
-<input class="sheet-input" id="cumpleMapsLink" placeholder="🗺️ Link de Google Maps (opcional)" type="url" style="font-size:12px;padding:9px 12px">
-<input class="sheet-input" id="cumpleWebLink" placeholder="🌐 Sitio web o Instagram (opcional)" type="url" style="font-size:12px;padding:9px 12px">
-</div>
-</div>
-<div class="sheet-actions">
-<button class="btn-cancel" onclick="closeCumpleEvent()">Cancelar</button>
-<button class="btn-save" id="cumpleEventBtn" onclick="saveCumpleEvent()">Guardar</button>
-</div>
-</div>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="cumpleEventTitle">Agregar evento de cumpleaños</div>
+    <div class="sheet-field">
+      <label>¿Qué van a hacer?</label>
+      <input class="sheet-input" id="cumpleEventInput" placeholder="ej. Cena de cumpleaños, Festejo...">
+    </div>
+    <div class="sheet-field">
+      <label>Fecha y hora</label>
+      <input class="sheet-input" type="datetime-local" id="cumpleEventDate">
+    </div>
+    <div class="sheet-field">
+      <label>Lugar (opcional)</label>
+      <div class="place-wrap">
+        <input class="sheet-input" id="cumpleEventLocation" placeholder="Busca o escribe un lugar..." type="text" autocomplete="off" oninput="searchPlace(this,'cumpleEventPlaceSug')" onblur="hideSug('cumpleEventPlaceSug')">
+        <div class="place-suggestions" id="cumpleEventPlaceSug" style="display:none"></div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px;padding:0 2px">Si no aparece, escribe el nombre y agrega los links ✍️</div>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+        <input class="sheet-input" id="cumpleMapsLink" placeholder="🗺️ Link de Google Maps (opcional)" type="url" style="font-size:12px;padding:9px 12px">
+        <input class="sheet-input" id="cumpleWebLink" placeholder="🌐 Sitio web o Instagram (opcional)" type="url" style="font-size:12px;padding:9px 12px">
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeCumpleEvent()">Cancelar</button>
+      <button class="btn-save" id="cumpleEventBtn" onclick="saveCumpleEvent()">Guardar</button>
+    </div>
+  </div>
 </div>
 
+<!-- Edit overlay -->
 <div class="overlay" id="editOverlay" onclick="handleEditOverlayClick(event)">
-<div class="sheet">
-<div class="sheet-handle"></div>
-<div class="sheet-title">Editar</div>
-<div class="sheet-field">
-<label>Texto</label>
-<input class="sheet-input" id="editInput" placeholder="Escribe aquí..." type="text">
-</div>
-<div class="sheet-field" id="editDateWrap" style="display:none">
-<label id="editDateLabel">Fecha y hora</label>
-<input class="sheet-input" type="datetime-local" id="editDate">
-<input class="sheet-input" type="date" id="editDateSimple" style="display:none">
-</div>
-<div class="sheet-field" id="editLocationWrap" style="display:none">
-<label>Lugar (opcional)</label>
-<div class="place-wrap">
-<input class="sheet-input" id="editLocation" placeholder="Busca o escribe un lugar..." type="text" autocomplete="off" oninput="searchPlace(this,'editPlaceSug')" onblur="hideSug('editPlaceSug')">
-<div class="place-suggestions" id="editPlaceSug" style="display:none"></div>
-</div>
-<div style="font-size:10px;color:var(--text3);margin-top:4px;padding:0 2px">Si no aparece, escribe el nombre y agrega los links abajo ✍️</div>
-<div id="editPlaceInfo" style="display:none;margin-top:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--radius-sm);font-size:11px;line-height:1.8"></div>
-<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
-<input class="sheet-input" id="editMapsLink" placeholder="🗺️ Link de Google Maps (opcional)" type="url" style="font-size:12px;padding:9px 12px">
-<input class="sheet-input" id="editWebLink" placeholder="🌐 Sitio web o Instagram (opcional)" type="url" style="font-size:12px;padding:9px 12px">
-</div>
-</div>
-<div class="sheet-field" id="editGuestWrap" style="display:none">
-<label>Invitado (opcional)</label>
-<input class="sheet-input" id="editGuest" placeholder="Nombre de quien invitas...">
-</div>
-<div class="sheet-actions">
-<button class="btn-cancel" onclick="closeEdit()">Cancelar</button>
-<button class="btn-save" id="editBtn" onclick="saveEdit()">Guardar</button>
-</div>
-</div>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Editar</div>
+    <div class="sheet-field">
+      <label>Texto</label>
+      <input class="sheet-input" id="editInput" placeholder="Escribe aquí..." type="text">
+    </div>
+    <div class="sheet-field" id="editDateWrap" style="display:none">
+      <label id="editDateLabel">Fecha y hora</label>
+      <input class="sheet-input" type="datetime-local" id="editDate">
+      <input class="sheet-input" type="date" id="editDateSimple" style="display:none">
+    </div>
+    <div class="sheet-field" id="editLocationWrap" style="display:none">
+      <label>Lugar (opcional)</label>
+      <div class="place-wrap">
+        <input class="sheet-input" id="editLocation" placeholder="Busca o escribe un lugar..." type="text" autocomplete="off" oninput="searchPlace(this,'editPlaceSug')" onblur="hideSug('editPlaceSug')">
+        <div class="place-suggestions" id="editPlaceSug" style="display:none"></div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px;padding:0 2px">Si no aparece, escribe el nombre y agrega los links abajo ✍️</div>
+      <div id="editPlaceInfo" style="display:none;margin-top:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--radius-sm);font-size:11px;line-height:1.8"></div>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+        <input class="sheet-input" id="editMapsLink" placeholder="🗺️ Link de Google Maps (opcional)" type="url" style="font-size:12px;padding:9px 12px">
+        <input class="sheet-input" id="editWebLink" placeholder="🌐 Sitio web o Instagram (opcional)" type="url" style="font-size:12px;padding:9px 12px">
+      </div>
+    </div>
+    <div class="sheet-field" id="editGuestWrap" style="display:none">
+      <label>Invitado (opcional)</label>
+      <input class="sheet-input" id="editGuest" placeholder="Nombre de quien invitas...">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeEdit()">Cancelar</button>
+      <button class="btn-save" id="editBtn" onclick="saveEdit()">Guardar</button>
+    </div>
+  </div>
 </div>
 
 <script src="app.js"></script>
+</body>
 </html>
