@@ -341,8 +341,8 @@ Continuar con Google
 </div>
 </div>
 <div class="sheet-field" id="sheetGuestWrap" style="display:none">
-<label>Invitado (opcional)</label>
-<input class="sheet-input" id="sheetGuest" placeholder="Nombre de quien invitas...">
+<label id="sheetGuestLabel">Con quién (opcional)</label>
+<input class="sheet-input" id="sheetGuest" placeholder="Nombre de quien va contigo...">
 </div>
 <div id="sheetSubtypeWrap" style="display:none">
 <div class="sheet-field" style="padding-bottom:4px"><label id="sheetSubtypeLabel">Tipo</label></div>
@@ -470,6 +470,16 @@ const HINTS={compras:'¿Qué necesitas comprar?',eventos:'Nombre del evento...',
 const NEED_DATE=['eventos','citas','salud','cumples','recordatorios','ejercicio','cultura','bts'];
 const NEED_LOC=['eventos','citas','ejercicio','bts'];
 const SALUD_TYPES=[{key:'sintoma',label:'🤒 Síntoma'},{key:'medicamento',label:'💊 Medicamento'},{key:'nota',label:'📋 Nota médica'},{key:'resultado',label:'🧪 Resultado'}];
+
+const EVENTO_TYPES=[
+  {key:'concierto',label:'🎤 Concierto'},
+  {key:'teatro',label:'🎭 Teatro / Show'},
+  {key:'cena',label:'🍽️ Cena / Restaurante'},
+  {key:'fiesta',label:'🎉 Fiesta / Reunión'},
+  {key:'viaje',label:'✈️ Viaje'},
+  {key:'deporte',label:'🏃 Deporte / Actividad'},
+  {key:'otro',label:'📅 Otro'},
+];
 
 const CULTURA_TYPES=[
   {key:'musica',label:'🎵 Música'},
@@ -1528,8 +1538,20 @@ function renderList(c){
 
 function parseLocation(raw){
   if(!raw)return{loc:null,guest:null};
-  const parts=raw.split('||');
+  // Strip evtype suffix before splitting on ||
+  const noEvtype=raw.replace(/~~evtype:[^|]*/,'');
+  const parts=noEvtype.split('||');
   return{loc:parts[0]||null,guest:parts[1]||null};
+}
+
+function parseEventoMeta(raw){
+  // Extract evtype and guest from location string
+  if(!raw)return{evtype:null,guest:null};
+  const evtypeMatch=raw.match(/~~evtype:([^|~]+)/);
+  const evtype=evtypeMatch?evtypeMatch[1]:null;
+  const noEvtype=raw.replace(/~~evtype:[^|]*/,'');
+  const guestPart=noEvtype.split('||')[1]||null;
+  return{evtype,guest:guestPart};
 }
 
 function renderItem(item,c,showPlan){
@@ -1596,15 +1618,17 @@ function renderItem(item,c,showPlan){
   // Cumple badge
   const cumplePerson=cumpleId?(items.cumples||[]).find(i=>i.id===cumpleId):null;
   const cumpleBadge=cumplePerson?`<div style="font-size:10px;color:#d85a30;margin-top:3px">🎂 Cumple de ${cumplePerson.text.split(' ')[0]}</div>`:'';
+  // Evento type badge and guest
+  let eventoBadge='', eventoGuest='';
+  if(c==='eventos'){
+    const{evtype,guest}=parseEventoMeta(item.location||'');
+    const evInfo=EVENTO_TYPES.find(t=>t.key===evtype);
+    if(evInfo)eventoBadge=`<span style="font-size:10px;background:rgba(186,117,23,0.12);color:#ba7517;padding:2px 7px;border-radius:20px;margin-top:3px;display:inline-block">${evInfo.label}</span>`;
+    if(guest)eventoGuest=`<div style="font-size:11px;color:var(--text3);margin-top:2px">👥 ${guest}</div>`;
+  }
   const pb=showPlan&&!item.done?`<button class="plan-btn" onclick="makePlan(event,'${item.id}','${c}')">hacer plan</button>`:'';
   const calBtn=NEED_DATE.includes(c)&&item.date?`<button class="cal-btn" onclick="addToCalendarById('${item.id}','${c}')" title="Calendario">📅</button>`:'';
-  // Canvas solo para eventos
   const cardBtn=c==='eventos'&&!item.done?`<button class="cal-btn" onclick="openInviteCard('${item.id}','${c}')" title="Tarjeta">🎨</button>`:'';
-  // WhatsApp buttons por categoría:
-  // eventos → Invitar
-  // citas → Avisar + Invitar + Cancelar (dos botones WA + cancelar)
-  // ejercicio → ya tiene su propio card
-  // salud, recordatorios, ideas, compras, cumples, bts, cultura → ninguno
   const isCancelled=item.location&&item.location.startsWith('cancelled:');
   let waBtns='';
   if(!item.done&&!isCancelled){
@@ -1614,13 +1638,12 @@ function renderItem(item,c,showPlan){
       waBtns=`<button class="wa-btn send" style="background:#555" onclick="shareItem('${item.id}','${c}','notify')">Avisar 💬</button><button class="wa-btn send" onclick="shareItem('${item.id}','${c}','invite')">Invitar 💚</button><button class="wa-btn send" style="background:#c0392b" onclick="cancelCita('${item.id}')">Cancelar cita</button>`;
     }
   }
-  // Cancelled state styling
   const cancelledBadge=isCancelled?`<div style="font-size:10px;color:#c0392b;margin-top:2px;font-weight:500">❌ Cancelada</div>`:'';
   return `<div class="list-item" style="flex-wrap:wrap${isCancelled?';opacity:0.6':''}">
     <div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div>
     <div style="flex:1;min-width:0">
       <div class="ltext ${item.done||isCancelled?'done':''}">${item.text}</div>
-      ${ds}${ls}${placeRow}${cumpleBadge}${cancelledBadge}
+      ${ds}${ls}${placeRow}${eventoBadge}${eventoGuest}${cumpleBadge}${cancelledBadge}
     </div>
     <div style="display:flex;align-items:center;gap:4px">
       ${pb}${calBtn}${cardBtn}
@@ -1763,7 +1786,7 @@ function openEdit(e,id,c){
   const needLoc=NEED_LOC.includes(c);
   document.getElementById('editDateWrap').style.display=needDate?'block':'none';
   document.getElementById('editLocationWrap').style.display=needLoc?'block':'none';
-  document.getElementById('editGuestWrap').style.display=c==='ejercicio'?'block':'none';
+  document.getElementById('editGuestWrap').style.display=(c==='ejercicio'||c==='eventos')?'block':'none';
   if(needDate){
     const isCumple=c==='cumples';
     document.getElementById('editDate').style.display=isCumple?'none':'block';
@@ -1775,7 +1798,6 @@ function openEdit(e,id,c){
     }
   }
   if(needLoc){
-    // Strip cancelled: and @@ before parsing
     const locRaw=item.location||'';
     const locNoCancelled=locRaw.startsWith('cancelled:')?locRaw.slice(10):locRaw;
     const rawLoc=locNoCancelled.split('@@')[0];
@@ -1784,7 +1806,11 @@ function openEdit(e,id,c){
     document.getElementById('editLocation').value=locName||'';
     document.getElementById('editMapsLink').value=mapsLink||'';
     document.getElementById('editWebLink').value=website||'';
-    if(c==='ejercicio')document.getElementById('editGuest').value=guest||'';
+    if(c==='ejercicio') document.getElementById('editGuest').value=guest||'';
+    if(c==='eventos'){
+      const{guest:evGuest}=parseEventoMeta(rawLoc);
+      document.getElementById('editGuest').value=evGuest||'';
+    }
   }
   document.getElementById('editOverlay').classList.add('open');
   setTimeout(()=>document.getElementById('editInput').focus(),350);
@@ -1825,6 +1851,15 @@ async function saveEdit(){
     if(c==='ejercicio'){
       const guest=document.getElementById('editGuest').value.trim();
       if(guest)location=(location||'')+'||'+guest;
+    }
+    if(c==='eventos'){
+      // Preserve evtype from original, add new guest
+      const origLoc=origItem?.location||'';
+      const evtypeMatch=origLoc.match(/~~evtype:([^|~]+)/);
+      const origEvtype=evtypeMatch?evtypeMatch[1]:null;
+      const guest=document.getElementById('editGuest').value.trim();
+      if(guest)location=(location||'')+'||'+guest;
+      if(origEvtype)location=(location||'')+'~~evtype:'+origEvtype;
     }
     // Re-apply cancelled: prefix if it was cancelled
     if(wasCancelled&&location!==null)location='cancelled:'+location;
@@ -1889,8 +1924,17 @@ function selectCat(btn,c){
   document.getElementById('sheetGuestWrap').style.display=c==='ejercicio'?'block':'none';
   const isRelease=c==='cultura'||c==='bts';
   const isSalud=c==='salud';
+  const isEvento=c==='eventos';
   document.getElementById('sheetLinkWrap').style.display=isRelease?'block':'none';
   document.getElementById('sheetNoteWrap').style.display=isRelease?'block':'none';
+  document.getElementById('sheetGuestWrap').style.display=(c==='ejercicio'||c==='eventos')?'block':'none';
+  if(c==='ejercicio'){
+    document.getElementById('sheetGuestLabel').textContent='Invitado (opcional)';
+    document.getElementById('sheetGuest').placeholder='Nombre de quien invitas...';
+  } else if(c==='eventos'){
+    document.getElementById('sheetGuestLabel').textContent='Con quién (opcional)';
+    document.getElementById('sheetGuest').placeholder='Ej: Mamá, Claudia, amigos...';
+  }
   // Subtypes
   const stWrap=document.getElementById('sheetSubtypeWrap');
   const stScroll=document.getElementById('sheetSubtypeScroll');
@@ -1902,6 +1946,10 @@ function selectCat(btn,c){
   } else if(isSalud){
     selectedSubtype=SALUD_TYPES[0].key;
     stScroll.innerHTML=SALUD_TYPES.map((t,i)=>`<button class="subtype-chip${i===0?' sel':''}" onclick="selectSubtype(this,'${t.key}')" style="color:#e24b4a;border-color:rgba(226,75,74,0.3)">${t.label}</button>`).join('');
+    stWrap.style.display='block';
+  } else if(isEvento){
+    selectedSubtype=EVENTO_TYPES[0].key;
+    stScroll.innerHTML=EVENTO_TYPES.map((t,i)=>`<button class="subtype-chip${i===0?' sel':''}" onclick="selectSubtype(this,'${t.key}')" style="color:#ba7517;border-color:rgba(186,117,23,0.3)">${t.label}</button>`).join('');
     stWrap.style.display='block';
   } else if(c==='recordatorios'){
     selectedSubtype='tarea';
@@ -1949,6 +1997,7 @@ async function saveItem(){
   const isRelease=cat==='cultura'||cat==='bts';
   const isSalud=cat==='salud';
   const isTodo=cat==='recordatorios';
+  const isEvento=cat==='eventos';
   if(isRelease||isSalud){
     const link=isRelease?(document.getElementById('sheetLink').value.trim()||''):'';
     const note=isRelease?(document.getElementById('sheetNote').value.trim()||''):'';
@@ -1958,9 +2007,13 @@ async function saveItem(){
     if(noteContent)location=`note:${noteContent}`;
   } else if(NEED_LOC.includes(cat)){
     location=getLocationStr('sheet');
-    if(cat==='ejercicio'){
+    if(cat==='ejercicio'||isEvento){
       const guest=document.getElementById('sheetGuest').value.trim();
       if(guest)location=(location||'')+'||'+guest;
+    }
+    // Store evento subtype in location with evtype: prefix
+    if(isEvento&&selectedSubtype){
+      location=(location||'')+'~~evtype:'+selectedSubtype;
     }
   }
   const btn=document.getElementById('saveBtn');
