@@ -669,7 +669,10 @@ async function toggleItemDB(id,category,done){
   if(item)item.done=!done;
 }
 async function toggleItem(id,c,done){await toggleItemDB(id,c,done);render();}
-async function deleteItem(id,c){await deleteItemDB(id,c);render();}
+async function deleteItem(id,c){
+  if(!confirm('¿Eliminar este elemento? Esta acción no se puede deshacer.'))return;
+  await deleteItemDB(id,c);render();
+}
 
 async function deleteItemDB(id,category){
   await sb.from('items').delete().eq('id',id).eq('user_id',user.id);
@@ -1318,7 +1321,8 @@ const SHARE_CATS=['eventos','citas','ejercicio'];
 function shareItem(id,c,mode='invite'){
   const item=(items[c]||[]).find(i=>i.id===id);
   if(!item)return;
-  const rawLoc=item.location?item.location.split('@@')[0].split('||')[0]:'';
+  // Strip @@, ~~evtype:, and || to get clean location
+  const rawLoc=item.location?item.location.split('@@')[0].replace(/~~evtype:[^|~]*/,'').split('||')[0]:'';
   const{locName,lat,lon,mapsLink,website}=parseLocationFull(rawLoc||null);
   const finalMapLink=mapsLink||mapsUrl(lat,lon,locName);
   const timeStr=item.date&&item.date.includes('T')?`📅 ${fmtDate(item.date)}, ${fmtTime(item.date)}`:(item.date?`📅 ${fmtDate(item.date)}`:'');
@@ -1537,12 +1541,8 @@ async function saveEdit(){
   closeEdit();
   render();
 }
-function sendWA(msg){
-  // Encode but restore 4-byte emojis — iOS WhatsApp shows ◆ for percent-encoded emojis
-  const encoded=encodeURIComponent(msg).replace(/%F0(%[89AB][0-9A-F])(%[89AB][0-9A-F])(%[89AB][0-9A-F])/gi,(m,a,b,c)=>decodeURIComponent('%F0'+a+b+c));
-  window.open(`https://wa.me/?text=${encoded}`,'_blank');
-}
-function sendWAEncoded(encodedMsg){window.open(`https://wa.me/?text=${encodedMsg}`,'_blank');}
+function sendWA(msg){window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');}
+function sendWAEncoded(encodedMsg){window.open('https://wa.me/?text='+encodedMsg,'_blank');}
 
 function makePlan(e,id,c){
   e.stopPropagation();
@@ -1685,13 +1685,18 @@ async function saveItem(){
   // Validate date format
   const safeDate=date?date.replace('T24:','T23:59').slice(0,16)||null:null;
   let data,error;
-  try{({data,error}=await sb.from('items').insert([{user_id:user.id,category:cat,text,date:safeDate||null,location:location||null,done:false}]).select().single());}
-  catch(e){error=e;}
+  try{
+    const resp=await sb.from('items').insert([{user_id:user.id,category:cat,text,date:safeDate||null,location:location||null,done:false}]).select().single();
+    data=resp.data;
+    error=resp.error;
+  }catch(e){
+    error=e;
+  }
   btn.textContent='Guardar';btn.disabled=false;
   if(error||!data){
-    const msg=error?(error.message||error.details||error.code||JSON.stringify(error)):'Sin respuesta de Supabase — revisa conexión';
-    console.error('saveItem error:',error,'data:',data);
-    alert('Error al guardar:\n'+msg);
+    const msg=error?(error.message||error.details||error.code||JSON.stringify(error)||'error desconocido'):'Supabase no respondió';
+    console.error('saveItem:',{error,data,cat,user:user?.id});
+    alert('No se guardó:\n'+msg);
     return;
   }
   if(!items[cat])items[cat]=[];
