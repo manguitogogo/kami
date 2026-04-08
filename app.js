@@ -37,7 +37,9 @@ const BTS_TYPES=[
 ];
 
 let selectedSubtype=null;
-let eventoFilter=null; // filter eventos by type
+let eventoFilter=null;
+let eventoView='list'; // 'list' | 'timeline' | 'cards'
+let statsOpen=false;
 
 // All available tabs definition
 const ALL_TABS=[
@@ -1000,20 +1002,17 @@ function renderList(c){
   const showPlan=c==='peliculas'||c==='libros';
   let h=`<div>`;
 
-  // Eventos: show type filter chips
+  // Eventos: filter chips + view switcher
   if(c==='eventos'&&arr.length){
-    const filterChips=`<div class="subtype-scroll" style="margin-bottom:10px">
-      <button class="subtype-chip${!eventoFilter?' sel':''}" onclick="eventoFilter=null;render()" style="color:#ba7517;border-color:rgba(186,117,23,0.3)">📅 Todos</button>
-      ${EVENTO_TYPES.map(t=>`<button class="subtype-chip${eventoFilter===t.key?' sel':''}" onclick="eventoFilter='${t.key}';render()" style="color:#ba7517;border-color:rgba(186,117,23,0.3)">${t.label}</button>`).join('')}
+    const vBtn=(v,icon)=>`<button onclick="eventoView='${v}';render()" style="padding:4px 9px;border-radius:6px;border:0.5px solid var(--border2);background:${eventoView===v?'var(--text)':'var(--bg2)'};color:${eventoView===v?'var(--bg)':'var(--text2)'};cursor:pointer;font-size:12px;font-family:inherit">${icon}</button>`;
+    h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div class="subtype-scroll" style="flex:1">
+        <button class="subtype-chip${!eventoFilter?' sel':''}" onclick="eventoFilter=null;render()" style="color:#ba7517;border-color:rgba(186,117,23,0.3)">Todos</button>
+        ${EVENTO_TYPES.map(t=>`<button class="subtype-chip${eventoFilter===t.key?' sel':''}" onclick="eventoFilter='${t.key}';render()" style="color:#ba7517;border-color:rgba(186,117,23,0.3)">${t.label}</button>`).join('')}
+      </div>
+      <div style="display:flex;gap:3px;flex-shrink:0">${vBtn('list','☰')}${vBtn('timeline','↕')}${vBtn('cards','⊟')}</div>
     </div>`;
-    h+=filterChips;
-    // Apply filter
-    if(eventoFilter){
-      arr=arr.filter(item=>{
-        const{evtype}=parseEventoMeta(item.location||'');
-        return evtype===eventoFilter;
-      });
-    }
+    if(eventoFilter) arr=arr.filter(item=>{const{evtype}=parseEventoMeta(item.location||'');return evtype===eventoFilter;});
   }
 
   if(!arr.length)h+=`<div class="empty"><div style="font-size:28px">${c==='bts'?'💜':'✦'}</div><p>${eventoFilter?'Sin eventos de este tipo.':'Nada aquí todavía.'}<br>${eventoFilter?'':'Toca + para agregar.'}</p></div>`;
@@ -1084,6 +1083,62 @@ function renderList(c){
     const done=arr.filter(i=>i.done);
     if(pending.length)h+=pending.map(i=>renderReleaseCard(i,c)).join('');
     if(done.length)h+=`<div><div class="slabel">visto / escuchado ✓</div>${done.map(i=>renderReleaseCard(i,c)).join('')}</div>`;
+  } else if(c==='eventos'&&eventoView!=='list'){
+    const sorted=[...arr].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    const pending=sorted.filter(i=>!i.done);
+    const done=sorted.filter(i=>i.done);
+    if(eventoView==='timeline'){
+      h+=`<div style="border-left:2px solid var(--border2);margin-left:12px">`;
+      h+=pending.map(item=>{
+        const{evtype,guest}=parseEventoMeta(item.location||'');
+        const evInfo=EVENTO_TYPES.find(t=>t.key===evtype);
+        const rawLoc=item.location?item.location.split('@@')[0]:'';
+        const{locName}=parseLocationFull(rawLoc||null);
+        const ds=item.date?`${fmtDate(item.date)}${item.date.includes('T')?', '+fmtTime(item.date):''}` : '';
+        const todos=getEventoTodos(item.id);
+        const doneT=todos.filter(t=>t.done).length;
+        return `<div style="display:flex;gap:12px;padding:0 0 20px 20px;position:relative">
+          <div style="position:absolute;left:-7px;top:4px;width:12px;height:12px;border-radius:50%;background:#ba7517;border:2px solid var(--bg)"></div>
+          <div style="flex:1;background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 14px">
+            ${evInfo?`<span style="font-size:10px;background:rgba(186,117,23,0.12);color:#ba7517;padding:2px 7px;border-radius:20px;display:inline-block;margin-bottom:4px">${evInfo.label}</span>`:''}
+            <div style="font-size:14px;font-weight:500;color:var(--text)">${item.text}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">${[ds,locName,guest?'con '+guest:''].filter(Boolean).join(' · ')}</div>
+            ${todos.length?`<div style="font-size:10px;color:var(--text3);margin-top:4px">✅ ${doneT}/${todos.length} tareas</div>`:''}
+          </div>
+        </div>`;
+      }).join('');
+      h+=`</div>`;
+    } else if(eventoView==='cards'){
+      h+=`<div style="display:flex;flex-direction:column;gap:10px">`;
+      h+=pending.map(item=>{
+        const{evtype,guest}=parseEventoMeta(item.location||'');
+        const evInfo=EVENTO_TYPES.find(t=>t.key===evtype);
+        const rawLoc=item.location?item.location.split('@@')[0]:'';
+        const{locName,mapsLink,lat,lon}=parseLocationFull(rawLoc||null);
+        const mapLink=mapsLink||mapsUrl(lat,lon,locName);
+        const ds=item.date?`${fmtDate(item.date)}${item.date.includes('T')?', '+fmtTime(item.date):''}` : '';
+        const todos=getEventoTodos(item.id);
+        const doneT=todos.filter(t=>t.done).length;
+        return `<div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;border-left:3px solid #ba7517">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="flex:1">
+              ${evInfo?`<span style="font-size:10px;background:rgba(186,117,23,0.12);color:#ba7517;padding:2px 7px;border-radius:20px;display:inline-block;margin-bottom:6px">${evInfo.label}</span>`:''}
+              <div style="font-size:15px;font-weight:500;color:var(--text)">${item.text}</div>
+              ${ds?`<div style="font-size:12px;color:var(--text3);margin-top:3px">📅 ${ds}</div>`:''}
+              ${locName?`<div style="font-size:12px;color:var(--text3);margin-top:2px">📍 ${mapLink?`<a href="${mapLink}" target="_blank" style="color:var(--pink)">${locName}</a>`:locName}</div>`:''}
+              ${guest?`<div style="font-size:12px;color:var(--text3);margin-top:2px">👥 ${guest}</div>`:''}
+            </div>
+            <div style="display:flex;gap:4px;margin-left:8px">
+              <button class="edit-btn" onclick="openEdit(event,'${item.id}','eventos')">✏️</button>
+              <button class="del-btn" onclick="deleteItem('${item.id}','eventos')">×</button>
+            </div>
+          </div>
+          ${todos.length?`<div style="margin-top:6px;font-size:11px;color:var(--text3)">✅ ${doneT}/${todos.length} tareas</div>`:''}
+        </div>`;
+      }).join('');
+      h+=`</div>`;
+    }
+    if(done.length)h+=`<div style="margin-top:12px"><div class="slabel">completados</div>${done.map(i=>renderItem(i,c,false)).join('')}</div>`;
   } else {
     const pending=arr.filter(i=>!i.done);
     const done=arr.filter(i=>i.done);
@@ -1109,6 +1164,32 @@ function parseEventoMeta(raw){
   const noEvtype=raw.replace(/~~evtype:[^|]*/,'');
   const guestPart=noEvtype.split('||')[1]||null;
   return{evtype,guest:guestPart};
+}
+
+// Evento checklist — stored in localStorage
+function getEventoTodos(eventId){try{return JSON.parse(localStorage.getItem('etodos_'+eventId)||'[]');}catch{return[];}}
+function saveEventoTodos(eventId,todos){localStorage.setItem('etodos_'+eventId,JSON.stringify(todos));}
+function addEventoTodo(eventId){
+  const input=document.getElementById('etodo_'+eventId);
+  if(!input)return;
+  const text=input.value.trim();
+  if(!text)return;
+  const todos=getEventoTodos(eventId);
+  todos.push({id:Date.now().toString(),text,done:false});
+  saveEventoTodos(eventId,todos);
+  input.value='';
+  render();
+}
+function toggleEventoTodo(eventId,todoId){
+  const todos=getEventoTodos(eventId);
+  const t=todos.find(t=>t.id===todoId);
+  if(t)t.done=!t.done;
+  saveEventoTodos(eventId,todos);
+  render();
+}
+function removeEventoTodo(eventId,todoId){
+  saveEventoTodos(eventId,getEventoTodos(eventId).filter(t=>t.id!==todoId));
+  render();
 }
 
 function renderItem(item,c,showPlan){
@@ -1196,6 +1277,32 @@ function renderItem(item,c,showPlan){
     }
   }
   const cancelledBadge=isCancelled?`<div style="font-size:10px;color:#c0392b;margin-top:2px;font-weight:500">❌ Cancelada</div>`:'';
+  // Checklist for eventos
+  let checklistHtml='';
+  if(c==='eventos'){
+    const todos=getEventoTodos(item.id);
+    const doneCount=todos.filter(t=>t.done).length;
+    let todoItems='';
+    if(todos.length){
+      todoItems=`<div style="font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:500">${doneCount}/${todos.length} tareas</div>`;
+      todos.forEach(t=>{
+        const chkStyle=`width:16px;height:16px;border-radius:4px;border:1.5px solid ${t.done?'#ba7517':'var(--border2)'};background:${t.done?'#ba7517':'transparent'};cursor:pointer;flex-shrink:0`;
+        const txtStyle=`font-size:12px;color:var(--text${t.done?'3':'2'});${t.done?'text-decoration:line-through':''}`;
+        todoItems+=`<div style="display:flex;align-items:center;gap:8px;padding:3px 0">
+          <div onclick="toggleEventoTodo('${item.id}','${t.id}')" style="${chkStyle}"></div>
+          <span style="${txtStyle};flex:1">${t.text}</span>
+          <button onclick="removeEventoTodo('${item.id}','${t.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0">×</button>
+        </div>`;
+      });
+    }
+    checklistHtml=`<div style="width:100%;padding-left:28px;margin-top:6px">
+      ${todoItems}
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <input id="etodo_${item.id}" class="sheet-input" placeholder="+ vuelo, hotel, outfit..." style="font-size:12px;padding:5px 10px;flex:1" onkeydown="if(event.key==='Enter')addEventoTodo('${item.id}')">
+        <button onclick="addEventoTodo('${item.id}')" style="padding:5px 10px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;cursor:pointer;color:var(--text2)">+</button>
+      </div>
+    </div>`;
+  }
   return `<div class="list-item" style="flex-wrap:wrap${isCancelled?';opacity:0.6':''}">
     <div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div>
     <div style="flex:1;min-width:0">
@@ -1208,6 +1315,7 @@ function renderItem(item,c,showPlan){
       <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
     </div>
     ${waBtns?`<div style="width:100%;padding-left:28px;margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${waBtns}</div>`:''}
+    ${checklistHtml}
   </div>`;
 }
 
@@ -1436,7 +1544,7 @@ async function saveEdit(){
   render();
 }
 function sendWA(msg){window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');}
-function sendWAEncoded(encodedMsg){window.open(`https://wa.me/?text=${encodedMsg}`,'_blank');}
+function sendWAEncoded(encodedMsg){sendWA(decodeURIComponent(encodedMsg));}
 
 function makePlan(e,id,c){
   e.stopPropagation();
@@ -1608,6 +1716,115 @@ function switchViewTo(v){
 }
 
 function toggleUserMenu(){document.getElementById('userOverlay').classList.toggle('open');}
+
+function openStats(){
+  toggleUserMenu();
+  const months=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const now=new Date();
+  const thisYear=now.getFullYear();
+  const thisMonth=now.getMonth();
+
+  // Count items per category
+  const counts={};
+  const yearCounts={};
+  Object.entries(items).forEach(([c,arr])=>{
+    counts[c]=arr.filter(i=>!i.done).length;
+    if(c==='eventos'||c==='citas'||c==='bts'){
+      yearCounts[c]={};
+      arr.forEach(i=>{
+        if(!i.date)return;
+        const y=parseLocalDate(i.date).getFullYear();
+        yearCounts[c][y]=(yearCounts[c][y]||0)+1;
+      });
+    }
+  });
+
+  // Upcoming events this month
+  const upcomingThisMonth=(items.eventos||[]).filter(i=>{
+    if(!i.date||i.done)return false;
+    const d=parseLocalDate(i.date);
+    return d.getFullYear()===thisYear&&d.getMonth()===thisMonth&&d>=now;
+  }).length;
+
+  // Concert count by year
+  const concerts=(items.eventos||[]).filter(i=>{
+    const{evtype}=parseEventoMeta(i.location||'');
+    return evtype==='concierto';
+  });
+  const concertYears={};
+  concerts.forEach(i=>{
+    if(!i.date)return;
+    const y=parseLocalDate(i.date).getFullYear();
+    concertYears[y]=(concertYears[y]||0)+1;
+  });
+  const allYears=[...new Set(Object.keys(concertYears))].sort();
+  const maxConcerts=Math.max(...Object.values(concertYears),1);
+
+  // Próximos cumples
+  const proxCumples=(items.cumples||[]).filter(i=>{
+    const d=nextBirthdayDate(i.date);
+    return d&&daysUntil(d)<=30;
+  }).sort((a,b)=>daysUntil(nextBirthdayDate(a.date))-daysUntil(nextBirthdayDate(b.date)));
+
+  const statsHTML=`<div style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:500;display:flex;align-items:flex-end" onclick="if(event.target===this)this.remove()">
+    <div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:20px 16px 40px">
+      <div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 20px"></div>
+      <div style="font-size:18px;font-weight:500;color:var(--text);margin-bottom:16px">Resumen</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px">
+        <div style="background:var(--bg2);border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:22px;font-weight:500;color:var(--text)">${(items.eventos||[]).filter(i=>!i.done).length}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">eventos</div>
+        </div>
+        <div style="background:var(--bg2);border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:22px;font-weight:500;color:var(--text)">${concerts.length}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">conciertos</div>
+        </div>
+        <div style="background:var(--bg2);border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:22px;font-weight:500;color:var(--text)">${upcomingThisMonth}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">este mes</div>
+        </div>
+      </div>
+
+      ${allYears.length?`<div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:10px">Conciertos por año</div>
+      <div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:20px">
+        ${allYears.map(y=>`<div style="display:flex;align-items:center;gap:10px;padding:5px 0">
+          <span style="font-size:12px;color:var(--text3);min-width:36px">${y}</span>
+          <div style="flex:1;height:6px;background:var(--bg2);border-radius:3px;overflow:hidden">
+            <div style="width:${Math.round((concertYears[y]/maxConcerts)*100)}%;height:100%;background:#ba7517;border-radius:3px"></div>
+          </div>
+          <span style="font-size:12px;color:var(--text2);min-width:16px;text-align:right">${concertYears[y]}</span>
+        </div>`).join('')}
+      </div>`:''}
+
+      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:10px">Categorías</div>
+      <div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px">
+        ${Object.entries(LABELS).filter(([k])=>k!=='peliculas'&&k!=='libros').map(([k,label],i,arr)=>`<div style="display:flex;align-items:center;gap:12px;padding:9px 14px;${i<arr.length-1?'border-bottom:0.5px solid var(--border)':''}">
+          <div style="width:8px;height:8px;border-radius:50%;background:${COLORS[k]||'#888'};flex-shrink:0"></div>
+          <span style="font-size:13px;color:var(--text);flex:1">${label}</span>
+          <span style="font-size:13px;font-weight:500;color:var(--text2)">${counts[k]||0}</span>
+        </div>`).join('')}
+      </div>
+
+      ${proxCumples.length?`<div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:10px">Proximos cumples</div>
+      <div style="background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden">
+        ${proxCumples.map((c,i,arr)=>{
+          const d=nextBirthdayDate(c.date);
+          const dias=daysUntil(d);
+          return `<div style="display:flex;align-items:center;gap:12px;padding:9px 14px;${i<arr.length-1?'border-bottom:0.5px solid var(--border)':''}">
+            <div style="font-size:16px">🎂</div>
+            <span style="font-size:13px;color:var(--text);flex:1">${c.text}</span>
+            <span style="font-size:11px;color:var(--text3)">${dias===0?'Hoy':dias===1?'Mañana':'en '+dias+' días'}</span>
+          </div>`;
+        }).join('')}
+      </div>`:''}
+    </div>
+  </div>`;
+
+  const el=document.createElement('div');
+  el.innerHTML=statsHTML;
+  document.body.appendChild(el.firstElementChild);
+}
 function handleUserOverlay(e){if(e.target.classList.contains('user-bg'))toggleUserMenu();}
 function parseLocalDate(s){
   if(!s)return null;
