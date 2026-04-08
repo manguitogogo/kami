@@ -424,27 +424,20 @@ async function fetchPlaceInfo(lat,lon,infoId){
 function hideSug(sugId){setTimeout(()=>{const s=document.getElementById(sugId);if(s)s.style.display='none';},400);}
 
 function getLocationStr(key){
-  // Get values from fields
   const inputId=key==='sheet'?'sheetLocation':key==='edit'?'editLocation':'cumpleEventLocation';
   const mapsId=key==='sheet'?'sheetMapsLink':key==='edit'?'editMapsLink':'cumpleMapsLink';
   const webId=key==='sheet'?'sheetWebLink':key==='edit'?'editWebLink':'cumpleWebLink';
   const name=(document.getElementById(inputId)?.value||'').trim();
   const mapsLink=(document.getElementById(mapsId)?.value||'').trim();
   const webLink=(document.getElementById(webId)?.value||'').trim();
-
-  // Start from placeData if available (has coords from autocomplete)
-  const obj=placeData[key]?{...placeData[key]}:{name,lat:null,lon:null};
-
-  // Override name if user typed something
+  // If user typed different name than autocomplete, discard autocomplete coords
+  let obj=placeData[key]?{...placeData[key]}:null;
+  if(obj&&name&&obj.name&&name!==obj.name)obj=null;
+  if(!obj)obj={name,lat:null,lon:null};
   if(name&&!obj.name)obj.name=name;
-
-  // Add links if provided
   if(mapsLink)obj.mapsLink=mapsLink;
   if(webLink)obj.website=webLink;
-
-  // If absolutely nothing useful — return null (location is optional)
   if(!obj.name&&!obj.mapsLink&&!obj.website&&!obj.lat&&!obj.lon)return null;
-
   return JSON.stringify(obj);
 }
 
@@ -1142,7 +1135,8 @@ function renderList(c){
   } else {
     const pending=arr.filter(i=>!i.done);
     const done=arr.filter(i=>i.done);
-    if(pending.length)h+=`<div><div class="slabel">pendientes</div>${pending.map(i=>renderItem(i,c,showPlan)).join('')}</div>`;
+    const sortedPending=(c==='eventos'||c==='citas')?[...pending].sort((a,b)=>(a.date||'').localeCompare(b.date||'')):pending;
+    if(pending.length)h+=`<div><div class="slabel">pendientes</div>${sortedPending.map(i=>renderItem(i,c,showPlan)).join('')}</div>`;
     if(done.length)h+=`<div><div class="slabel">completados</div>${done.map(i=>renderItem(i,c,false)).join('')}</div>`;
   }
   return h+`</div>`;
@@ -1684,8 +1678,10 @@ async function saveItem(){
   const btn=document.getElementById('saveBtn');
   btn.textContent='Guardando...';btn.disabled=true;
   if(!user){alert('No hay sesión activa. Recarga la página.');btn.textContent='Guardar';btn.disabled=false;return;}
+  // Validate date format
+  const safeDate=date?date.replace('T24:','T23:59').slice(0,16)||null:null;
   let data,error;
-  try{({data,error}=await sb.from('items').insert([{user_id:user.id,category:cat,text,date:date||null,location:location||null,done:false}]).select().single());}
+  try{({data,error}=await sb.from('items').insert([{user_id:user.id,category:cat,text,date:safeDate||null,location:location||null,done:false}]).select().single());}
   catch(e){error=e;}
   btn.textContent='Guardar';btn.disabled=false;
   if(error){
