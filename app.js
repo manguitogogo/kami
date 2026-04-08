@@ -38,8 +38,9 @@ const BTS_TYPES=[
 
 let selectedSubtype=null;
 let eventoFilter=null;
-let eventoView='list'; // 'list' | 'timeline' | 'cards'
+let eventoView='list';
 let statsOpen=false;
+let todoFilter='todos'; // 'todos' | 'personal' | 'laboral'
 
 // All available tabs definition
 const ALL_TABS=[
@@ -207,7 +208,7 @@ function drawInviteCard(item,c){
   }
 
   // Location — strip @@ cumpleId suffix before parsing
-  const rawLocCard=item.location?item.location.split('@@')[0].split('||')[0]:'';
+  const rawLocCard=item.location?item.location.split('@@')[0].replace(/~~evtype:[^|~]*/,'').split('||')[0]:'';
   const{locName}=parseLocationFull(rawLocCard||null);
   if(locName){
     ctx.font='28px sans-serif';
@@ -276,7 +277,7 @@ function addToCalendar(item,c){
   const start=fmt(d);
   const end=fmt(new Date(d.getTime()+60*60*1000));
   // Properly strip @@ and || before parsing location
-  const rawLoc=item.location?item.location.split('@@')[0].split('||')[0]:'';
+  const rawLoc=item.location?item.location.split('@@')[0].replace(/~~evtype:[^|~]*/,'').split('||')[0]:'';
   const{locName,lat,lon,mapsLink}=parseLocationFull(rawLoc||null);
   const finalMapLink=mapsLink||mapsUrl(lat,lon,locName);
   const{note}=parseRelease(item.location||'');
@@ -314,7 +315,7 @@ function sendDailySummary(){
       const c=item.cat;
       const emoji={eventos:'📅',citas:'🤝',ejercicio:'🏃',salud:'💊',recordatorios:'🔔',bts:'💜',cultura:'✨',cumples:'🎂'}[c]||'•';
       const t=item.date&&item.date.includes('T')?fmtTime(item.date):'';
-      const{locName}=parseLocationFull(item.location?item.location.split('||')[0]:null);
+      const{locName}=parseLocationFull(item.location?item.location.split('@@')[0].replace(/~~evtype:[^|~]*/,'').split('||')[0]:null);
       const{note}=parseRelease(item.location||'');
       const parts=[t,locName,note].filter(Boolean).join(' · ');
       msg+=`\n${emoji} *${item.text}*${parts?' — '+parts:''}`;
@@ -536,7 +537,7 @@ function dismissInvite(){
 
 function buildInviteLink(item,c,from){
   // Clean location: strip @@cumpleId suffix, parse JSON to get name
-  const rawLoc=item.location?item.location.split('@@')[0]:'';
+  const rawLoc=item.location?item.location.split('@@')[0].replace(/~~evtype:[^|~]*/,'').split('||')[0]:'';
   const{locName,lat,lon,mapsLink}=parseLocationFull(rawLoc||null);
   const finalMapLink=mapsLink||mapsUrl(lat,lon,locName);
   const locParam=locName?`&loc=${encodeURIComponent(locName)}`:'';
@@ -775,7 +776,7 @@ function renderMiniCal(today){
           const color=COLORS[c]||'#888';
           const label2=LABELS[c]||c;
           const t=item.date&&item.date.includes('T')?fmtTime(item.date):'';
-          const rawLoc=item.location?item.location.split('@@')[0].split('||')[0]:'';
+          const rawLoc=item.location?item.location.split('@@')[0].replace(/~~evtype:[^|~]*/,'').split('||')[0]:'';
           const{locName}=parseLocationFull(rawLoc||null);
           return `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);cursor:pointer" onclick="switchViewTo('${c}')">
             <div style="width:3px;border-radius:3px;background:${color};flex-shrink:0;align-self:stretch"></div>
@@ -861,7 +862,7 @@ function renderHoy(){
           <div class="r-badge ${badge}">${LABELS[c]}</div>
         </div>`;
       } else {
-        const{locName,lat,lon}=parseLocationFull(item.location?item.location.split('||')[0]:null);
+        const{locName,lat,lon}=parseLocationFull(item.location?item.location.split('@@')[0].replace(/~~evtype:[^|~]*/,'').split('||')[0]:null);
         const loc=locName?` · ${locName}`:'';
         const mapLink=mapsUrl(lat,lon,locName);
         const ml=mapLink?`<a href="${mapLink}" target="_blank" style="font-size:10px;color:var(--pink);text-decoration:none;flex-shrink:0;margin-right:4px">📍</a>`:'';
@@ -1047,18 +1048,31 @@ function renderList(c){
       </div>`;
     }).join('');
   } else if(c==='recordatorios'){
-    // To-Do: split by type — checklist items vs notes
-    const pending=arr.filter(i=>!i.done);
-    const done=arr.filter(i=>i.done);
+    // Filter switch
+    const fBtn=(key,label)=>`<button onclick="todoFilter='${key}';render()" style="padding:5px 14px;border-radius:20px;border:0.5px solid var(--border2);background:${todoFilter===key?'var(--text)':'var(--bg2)'};color:${todoFilter===key?'var(--bg)':'var(--text2)'};cursor:pointer;font-size:12px;font-family:inherit">${label}</button>`;
+    h+=`<div style="display:flex;gap:6px;margin-bottom:10px">${fBtn('todos','Todos')}${fBtn('personal','🏠 Personal')}${fBtn('laboral','💼 Laboral')}</div>`;
+    // Parse cat from location prefix
+    const getTodoCat=item=>{
+      const loc=item.location||'';
+      if(loc.startsWith('laboral:'))return 'laboral';
+      return 'personal'; // default for old items without prefix
+    };
+    const filtered=todoFilter==='todos'?arr:arr.filter(i=>getTodoCat(i)===todoFilter);
+    const pending=filtered.filter(i=>!i.done);
+    const done=filtered.filter(i=>i.done);
     const renderTodo=(item,active)=>{
-      const isNote=item.location&&item.location.startsWith('note:');
-      const noteText=isNote?item.location.slice(5):'';
-      const ds=item.date?`<div class="lmeta" style="${!active&&item.date<new Date().toISOString().split('T')[0]?'color:#e24b4a':''}">${fmtDate(item.date)}</div>`:'';
+      const loc=item.location||'';
+      const locStripped=loc.startsWith('laboral:')?loc.slice(8):loc.startsWith('personal:')?loc.slice(9):loc;
+      const isNote=locStripped.startsWith('note:');
+      const noteText=isNote?locStripped.slice(5):'';
+      const itemCat=getTodoCat(item);
+      const catBadge=`<span style="font-size:9px;color:var(--text3);margin-left:4px">${itemCat==='laboral'?'💼':'🏠'}</span>`;
+      const ds=item.date?`<div class="lmeta" style="${active&&item.date<new Date().toISOString().split('T')[0]?'color:#e24b4a':''}">${fmtDate(item.date)}</div>`:'';
       if(isNote){
         return `<div class="list-item" style="flex-direction:column;align-items:stretch;border-left:3px solid #534ab7">
           <div style="display:flex;align-items:center;gap:8px">
             <div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div>
-            <div style="flex:1"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}</div>
+            <div style="flex:1"><div class="ltext ${item.done?'done':''}">${item.text}${catBadge}</div>${ds}</div>
             <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')">✏️</button>
             <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
           </div>
@@ -1067,11 +1081,12 @@ function renderList(c){
       }
       return `<div class="list-item">
         <div class="lcheck ${item.done?'done':''}" onclick="toggleItem('${item.id}','${c}',${item.done})"></div>
-        <div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}</div>${ds}</div>
+        <div style="flex:1;min-width:0"><div class="ltext ${item.done?'done':''}">${item.text}${catBadge}</div>${ds}</div>
         <button class="edit-btn" onclick="openEdit(event,'${item.id}','${c}')">✏️</button>
         <button class="del-btn" onclick="deleteItem('${item.id}','${c}')">×</button>
       </div>`;
     };
+    if(!filtered.length)h+=`<div class="empty"><div style="font-size:28px">✦</div><p>Sin tareas${todoFilter!=='todos'?' en esta categoría':''}</p></div>`;
     if(pending.length)h+=`<div>${pending.map(i=>renderTodo(i,true)).join('')}</div>`;
     if(done.length)h+=`<div><div class="slabel">completados ✓</div>${done.map(i=>renderTodo(i,false)).join('')}</div>`;
   } else if(isRelease){
@@ -1088,7 +1103,7 @@ function renderList(c){
       h+=pending.map(item=>{
         const{evtype,guest}=parseEventoMeta(item.location||'');
         const evInfo=EVENTO_TYPES.find(t=>t.key===evtype);
-        const rawLoc=item.location?item.location.split('@@')[0]:'';
+        const rawLoc=item.location?item.location.split('@@')[0].replace(/~~evtype:[^|~]*/,'').split('||')[0]:'';
         const{locName}=parseLocationFull(rawLoc||null);
         const ds=item.date?`${fmtDate(item.date)}${item.date.includes('T')?', '+fmtTime(item.date):''}` : '';
         const todos=getEventoTodos(item.id);
@@ -1109,7 +1124,7 @@ function renderList(c){
       h+=pending.map(item=>{
         const{evtype,guest}=parseEventoMeta(item.location||'');
         const evInfo=EVENTO_TYPES.find(t=>t.key===evtype);
-        const rawLoc=item.location?item.location.split('@@')[0]:'';
+        const rawLoc=item.location?item.location.split('@@')[0].replace(/~~evtype:[^|~]*/,'').split('||')[0]:'';
         const{locName,mapsLink,lat,lon}=parseLocationFull(rawLoc||null);
         const mapLink=mapsLink||mapsUrl(lat,lon,locName);
         const ds=item.date?`${fmtDate(item.date)}${item.date.includes('T')?', '+fmtTime(item.date):''}` : '';
@@ -1501,9 +1516,9 @@ async function saveEdit(){
     const origLoc=origItem?.location||'';
     location=origLoc||null;
   } else if(c==='recordatorios'){
-    // Keep existing note if any
+    // Keep existing location (preserves personal:/laboral: prefix and note: content)
     const origLoc=origItem?.location||'';
-    location=origLoc.startsWith('note:')?origLoc:null;
+    location=origLoc||null;
   } else if(NEED_LOC.includes(c)){
     location=getLocationStr('edit');
     // Preserve @@cumpleId
@@ -1616,7 +1631,7 @@ function selectCat(btn,c){
     stWrap.style.display='block';
   } else if(c==='recordatorios'){
     selectedSubtype='tarea';
-    stScroll.innerHTML=`<button class="subtype-chip sel" onclick="selectSubtypeTodo(this,'tarea')" style="color:#534ab7;border-color:rgba(83,74,183,0.3)">✅ Tarea</button><button class="subtype-chip" onclick="selectSubtypeTodo(this,'nota')" style="color:#534ab7;border-color:rgba(83,74,183,0.3)">📝 Nota</button>`;
+    stScroll.innerHTML=`<button class="subtype-chip sel" onclick="selectSubtypeTodo(this,'tarea')" style="color:#534ab7;border-color:rgba(83,74,183,0.3)">✅ Tarea</button><button class="subtype-chip" onclick="selectSubtypeTodo(this,'nota')" style="color:#534ab7;border-color:rgba(83,74,183,0.3)">📝 Nota</button><span style="width:1px;background:var(--border2);height:18px;display:inline-block;margin:0 4px;vertical-align:middle"></span><button class="subtype-chip" onclick="selectTodoCat(this,'personal')" style="color:#534ab7;border-color:rgba(83,74,183,0.3)">🏠 Personal</button><button class="subtype-chip" onclick="selectTodoCat(this,'laboral')" style="color:#534ab7;border-color:rgba(83,74,183,0.3)">💼 Laboral</button>`;
     stWrap.style.display='block';
     document.getElementById('sheetNoteWrap').style.display='none';
     document.getElementById('sheetNoteLabel').textContent='Contenido de la nota';
@@ -1640,13 +1655,21 @@ function selectSubtype(btn,key){
   selectedSubtype=key;
 }
 
+let todoCat='personal'; // 'personal' | 'laboral'
+
 function selectSubtypeTodo(btn,key){
-  document.querySelectorAll('#sheetSubtypeScroll .subtype-chip').forEach(x=>x.classList.remove('sel'));
+  // Only deselect other type chips (tarea/nota), not category chips
+  document.querySelectorAll('#sheetSubtypeScroll .subtype-chip[onclick*="selectSubtypeTodo"]').forEach(x=>x.classList.remove('sel'));
   btn.classList.add('sel');
   selectedSubtype=key;
-  // Show note textarea only for nota type
   const noteWrap=document.getElementById('sheetNoteWrap');
   noteWrap.style.display=key==='nota'?'block':'none';
+}
+
+function selectTodoCat(btn,cat){
+  document.querySelectorAll('#sheetSubtypeScroll .subtype-chip[onclick*="selectTodoCat"]').forEach(x=>x.classList.remove('sel'));
+  btn.classList.add('sel');
+  todoCat=cat;
 }
 
 function selectCatByKey(c){const chip=document.querySelector(`.cat-chip[data-cat="${c}"]`);if(chip)selectCat(chip,c);}
@@ -1657,8 +1680,11 @@ async function saveItem(){
   try{
   const text=document.getElementById('sheetInput').value.trim();
   if(!text){document.getElementById('sheetInput').focus();btn.textContent='Guardar';btn.disabled=false;return;}
-  const dateEl=document.getElementById('sheetDate').style.display!='none'?document.getElementById('sheetDate'):document.getElementById('sheetDateSimple');
-  const date=dateEl?dateEl.value||null:null;
+  const dateElA=document.getElementById('sheetDate');
+  const dateElB=document.getElementById('sheetDateSimple');
+  const dateEl=(dateElA&&dateElA.style.display!=='none')?dateElA:dateElB;
+  let date=null;
+  try{date=(dateEl&&dateEl.value)?dateEl.value:null;}catch(e){date=null;}
   let location=null;
   const isRelease=cat==='cultura'||cat==='bts';
   const isSalud=cat==='salud';
@@ -1668,9 +1694,11 @@ async function saveItem(){
     const link=isRelease?(document.getElementById('sheetLink').value.trim()||''):'';
     const note=isRelease?(document.getElementById('sheetNote').value.trim()||''):'';
     location=`~~${selectedSubtype||''}~~${link}~~${note}`;
-  } else if(isTodo&&selectedSubtype==='nota'){
-    const noteContent=document.getElementById('sheetNote').value.trim()||'';
-    if(noteContent)location=`note:${noteContent}`;
+  } else if(isTodo){
+    const noteContent=selectedSubtype==='nota'?(document.getElementById('sheetNote').value.trim()||''):'';
+    const cat_prefix=todoCat==='laboral'?'laboral:':'personal:';
+    if(selectedSubtype==='nota'&&noteContent) location=cat_prefix+'note:'+noteContent;
+    else location=cat_prefix;
   } else if(NEED_LOC.includes(cat)){
     location=getLocationStr('sheet');
     if(cat==='ejercicio'||isEvento){
@@ -1706,6 +1734,7 @@ async function saveItem(){
 
 function switchView(v,btn){
   if(v!=='eventos')eventoFilter=null;
+  if(v!=='recordatorios')todoFilter='todos';
   view=v;
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   if(btn)btn.classList.add('active');
@@ -1714,6 +1743,7 @@ function switchView(v,btn){
 
 function switchViewTo(v){
   if(v!=='eventos')eventoFilter=null;
+  if(v!=='recordatorios')todoFilter='todos';
   view=v;
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===v));
   render();
