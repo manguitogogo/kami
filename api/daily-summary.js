@@ -55,6 +55,7 @@ module.exports = async function handler(req, res) {
     if (error) throw new Error(error.message);
 
     console.log('Items found:', items?.length || 0);
+    console.log('Items categories:', (items||[]).map(i => i.category + '|' + i.date?.slice(0,10)).join(', '));
 
     const normalizeDate = (s) => s ? s.replace(' ', 'T').slice(0,10) : null;
 
