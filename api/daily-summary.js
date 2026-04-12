@@ -56,6 +56,9 @@ module.exports = async function handler(req, res) {
 
     console.log('Items found:', items?.length || 0);
     console.log('Items categories:', (items||[]).map(i => i.category + '|' + i.date?.slice(0,10)).join(', '));
+    const todoItems = (items||[]).filter(i => i.category === 'recordatorios');
+console.log('Todo items raw:', JSON.stringify(todoItems.map(i => ({text: i.text, date: i.date, done: i.done}))));
+console.log('todayStr:', todayStr);
 
     const normalizeDate = (s) => s ? s.replace(' ', 'T').slice(0,10) : null;
 
@@ -81,7 +84,7 @@ module.exports = async function handler(req, res) {
 
     const emojis = { eventos:'📅', citas:'🤝', ejercicio:'🏃', salud:'💊', bts:'💜', cultura:'✨' };
 
-    let msg = `☀️ *Buenos díasv2\\! Tu día — ${dateLabel}*\n`;
+    let msg = `☀️ *Buenos días\\! Tu día — ${dateLabel}*\n`;
 
     if (todayCumples.length) {
       msg += `\n🎂 *Cumpleaños hoy*\n`;
