@@ -3,7 +3,7 @@ const { createClient } = require('@supabase/supabase-js');
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const USER_ID = '0fc35c70-9b02-4487-9636-45c567d037ba';
 
 async function sendTelegram(msg) {
