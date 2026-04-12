@@ -67,7 +67,8 @@ module.exports = async function handler(req, res) {
     const pendingTodos = (items || []).filter(item => {
       if (item.category !== 'recordatorios') return false;
       if (!item.date) return true;
-      return item.date.slice(0,10) <= todayStr;
+      const itemDate = item.date.replace(' ', 'T').slice(0,10);
+      return itemDate <= todayStr;
     });
 
     const pendingCompras = (items || []).filter(i => i.category === 'compras');
