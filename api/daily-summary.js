@@ -81,7 +81,7 @@ module.exports = async function handler(req, res) {
 
     const emojis = { eventos:'📅', citas:'🤝', ejercicio:'🏃', salud:'💊', bts:'💜', cultura:'✨' };
 
-    let msg = `☀️ *Buenos días\\! Tu día — ${dateLabel}*\n`;
+    let msg = `☀️ *Buenos díasv2\\! Tu día — ${dateLabel}*\n`;
 
     if (todayCumples.length) {
       msg += `\n🎂 *Cumpleaños hoy*\n`;
