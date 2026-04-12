@@ -4,10 +4,12 @@ const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const USER_ID = '0fc35c70-9b02-4487-9636-45c567d037ba';
 
 function fmtTime(s) {
-  if (!s || !s.includes('T')) return '';
-  const d = new Date(s.replace('Z','').replace(/[+-]\d{2}:\d{2}$/, ''));
+  if (!s || !s.includes('T') && !s.includes(' ')) return '';
+  const normalized = s.replace(' ', 'T').replace('+00','');
+  const d = new Date(normalized);
   return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 }
 
@@ -47,28 +49,31 @@ module.exports = async function handler(req, res) {
     const { data: items, error } = await sb
       .from('items')
       .select('*')
+      .eq('user_id', USER_ID)
       .eq('done', false);
 
     if (error) throw new Error(error.message);
 
     console.log('Items found:', items?.length || 0);
 
+    const normalizeDate = (s) => s ? s.replace(' ', 'T').slice(0,10) : null;
+
     const todayEvents = (items || []).filter(item => {
       if (!item.date) return false;
       const cats = ['eventos','citas','ejercicio','salud','bts','cultura'];
       if (!cats.includes(item.category)) return false;
-      return item.date.startsWith(todayStr);
+      return normalizeDate(item.date) === todayStr;
     }).sort((a,b) => (a.date||'').localeCompare(b.date||''));
 
-    const todayCumples = (items || []).filter(item =>
-      item.category === 'cumples' && item.date && item.date.slice(5) === todayMMDD
-    );
+    const todayCumples = (items || []).filter(item => {
+      if (item.category !== 'cumples' || !item.date) return false;
+      return item.date.slice(5,10) === todayMMDD;
+    });
 
     const pendingTodos = (items || []).filter(item => {
       if (item.category !== 'recordatorios') return false;
       if (!item.date) return true;
-      const itemDate = item.date.replace(' ', 'T').slice(0,10);
-      return itemDate <= todayStr;
+      return normalizeDate(item.date) <= todayStr;
     });
 
     const pendingCompras = (items || []).filter(i => i.category === 'compras');
@@ -112,7 +117,7 @@ module.exports = async function handler(req, res) {
 
     await sendTelegram(msg);
 
-    return res.status(200).json({ ok: true, sent: true, today: todayStr });
+    return res.status(200).json({ ok: true, sent: true, today: todayStr, itemsFound: items?.length || 0 });
 
   } catch (err) {
     console.error('Cron error:', err.message);
