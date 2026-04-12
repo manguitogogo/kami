@@ -78,12 +78,12 @@ module.exports = async function handler(req, res) {
       item.category === 'cumples' && item.date && normalizeDate(item.date).slice(5) === todayMMDD
     );
 
-    // To-Do: sin fecha O con fecha <= hoy
-    const pendingTodos = (items || []).filter(item => {
-      if (item.category !== 'recordatorios') return false;
-      if (!item.date) return true;
-      return normalizeDate(item.date) <= todayStr;
-    });
+    // To-Do: solo los que tienen fecha <= hoy
+const pendingTodos = (items || []).filter(item => {
+  if (item.category !== 'recordatorios') return false;
+  if (!item.date) return false;
+  return normalizeDate(item.date) <= todayStr;
+});
 
     // Compras pendientes
     const pendingCompras = (items || []).filter(i => i.category === 'compras');
